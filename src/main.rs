@@ -1,6 +1,5 @@
-use glam::{DVec3, DVec4};
-use std::cmp::Ordering;
-
+use glam::{DVec2, DVec3};
+use std::f64::consts::PI;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 fn hash(v: f64) -> f64 {
@@ -17,11 +16,16 @@ fn hashv3(v: DVec3) -> f64 {
     (s.finish() as f64) / (u64::MAX as f64)
 }
 
-fn mix(a: f64, b: f64, m: f64) -> f64 {
-    b * m + a * (1.0 - m)
+fn hashv3GLSL(p: DVec3) -> f64{
+    (4768.1232345456 * ((p.x+p.y*43.0+p.z*137.0)).sin()).fract()
 }
 
-fn value_noise(x: DVec3) -> f64 {
+fn mix(a: f64, b: f64, m: f64) -> f64 {
+    a * (1.0 - m) + b * m
+}
+
+fn value_noise(xx: DVec3) -> f64 {
+    let x = xx + 1000.0;
     let p = x.floor();
     let mut fr = x.fract();
     fr = fr * fr * (3.0 - 2.0 * fr);
@@ -55,7 +59,7 @@ fn value_noise(x: DVec3) -> f64 {
 
     let l3candidate1 = mix(l2candidate1, l2candidate2, fr.z);
 
-    return l3candidate1;
+    l3candidate1
 }
 
 fn fbm(mut pos: DVec3, iterations: i32, scaler: f64, weighter: f64) -> f64 {
@@ -70,52 +74,31 @@ fn fbm(mut pos: DVec3, iterations: i32, scaler: f64, weighter: f64) -> f64 {
     res
 }
 
+fn polar_to_xyz(xyin: DVec2) -> DVec3 {
+    let xy = xyin * DVec2::new(2.0 * PI, PI);
+    let z = xy.y.cos();
+    let x = xy.x.cos() * xy.y.sin();
+    let y = xy.x.sin() * xy.y.sin();
+    DVec3::new(x, y, z).normalize()
+}
+
 fn main() {
-    let a = DVec4::new(1.0, 2.0, 3.0, 4.0);
-    let b = DVec4::new(3.0, 3.0, 33.0, 3.0);
-    let c = DVec3::new(3.0, 3.0, 33.0);
+    let imgx = 2048 * 2;
+    let imgy = 2048;
 
-    match a.x.partial_cmp(&b.x) {
-        None => panic!("nanananana"),
-        Some(x) => match x {
-            Ordering::Less => println!("actually less"),
-            Ordering::Equal => println!("actually more!"),
-            Ordering::Greater => println!(" uh oh eq"),
-        },
-    }
-    println!("{}", value_noise(c));
-    println!("{}", hash(123.0));
-
-    let imgx = 800;
-    let imgy = 800;
-
-    let scalex = 3.0 / imgx as f32;
-    let scaley = 3.0 / imgy as f32;
-
-    // Create a new ImgBuf with width: imgx and height: imgy
     let mut imgbuf = image::ImageBuffer::new(imgx, imgy);
 
-    // Iterate over the coordinates and pixels of the image
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
-        let r = (0.3 * x as f32) as u8;
-        let b = (0.3 * y as f32) as u8;
-        *pixel = image::Rgb([r, 0, b]);
+        let p = polar_to_xyz(DVec2::new((x as f64) / (imgx as f64), (y as f64) / (imgy as f64)));
+        let v3 = DVec3::new(0.0, (x as f64) / (imgx as f64), (y as f64) / (imgy as f64));
+
+        let value = fbm(p * 1.0, 20, 3.0, 0.6);
+        // let value = value_noise(p * 20.0);
+
+        *pixel = image::Luma([
+            (value * 255.0) as u8,
+        ]);
     }
 
-    // A redundant loop to demonstrate reading image data
-    for x in 0..imgx {
-        print!("{}.", x);
-        for y in 0..imgy {
-            let p = DVec3::new(x as f64 / imgx as f64, y as f64 / imgy as f64, 10.0);
-
-            let value = fbm(p * 10.0, 10, 2.0, 0.5);
-
-            let pixel = imgbuf.get_pixel_mut(x, y);
-            let image::Rgb(data) = *pixel;
-            *pixel = image::Rgb([(value * 255.0) as u8, (value * 255.0) as u8, (value * 255.0) as u8]);
-        }
-    }
-
-    // Save the image as “fractal.png”, the format is deduced from the path
     imgbuf.save("fractal.png").unwrap();
 }
