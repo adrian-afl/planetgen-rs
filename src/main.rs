@@ -24,10 +24,9 @@ fn mix(a: f64, b: f64, m: f64) -> f64 {
     a * (1.0 - m) + b * m
 }
 
-fn value_noise(xx: DVec3) -> f64 {
-    let x = xx + 1000.0;
+fn value_noise(x: DVec3) -> f64 {
     let p = x.floor();
-    let mut fr = x.fract();
+    let mut fr = x - p;
     fr = fr * fr * (3.0 - 2.0 * fr);
     let lbz = p + DVec3::new(0.0, 0.0, 0.0);
     let ltz = p + DVec3::new(0.0, 1.0, 0.0);
