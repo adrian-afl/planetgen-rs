@@ -33,9 +33,7 @@ fn subdivide_triangle_multiple(tri: Triangle, count: i32) -> Vec<Triangle> {
             tmp.push(cur[2]);
             tmp.push(cur[3]);
         }
-        for t in 0..tmp.len() {
-            triangles.push(tmp[t]);
-        }
+        triangles = tmp;
     }
     triangles
 }
@@ -97,68 +95,87 @@ pub fn generate_icosphere_raw<const RES: usize>(
     let base = get_base_icosphere();
 
     // let mut first_subdivision: Vec<Triangle> = vec![];
-    base.map(|triangle| {
-        let mut level0 = subdivide_triangle_multiple(triangle, 3);
+    base.into_iter()
+        .enumerate()
+        .for_each(|(index_main, triangle)| {
+            let mut level0 = subdivide_triangle_multiple(triangle, 2);
 
-        level0.into_par_iter().enumerate().for_each(|(index, t)| {
-            let mut level0file =
-                File::create(outputDir.to_owned() + "/" + index.to_string().as_str() + ".l0.raw")
-                    .expect("create failed");
-            let mut level1file =
-                File::create(outputDir.to_owned() + "/" + index.to_string().as_str() + ".l1.raw")
-                    .expect("create failed");
-            let mut level2file =
-                File::create(outputDir.to_owned() + "/" + index.to_string().as_str() + ".l2.raw")
-                    .expect("create failed");
-            let mut level3file =
-                File::create(outputDir.to_owned() + "/" + index.to_string().as_str() + ".l3.raw")
-                    .expect("create failed");
+            level0.into_par_iter().enumerate().for_each(|(index, t)| {
+                // let mut level0file =
+                //     File::create(outputDir.to_owned() + "/" + index.to_string().as_str() + ".l0.raw")
+                //         .expect("create failed");
+                let mut level1file = File::create(
+                    outputDir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "."
+                        + (index).to_string().as_str()
+                        + ".l1.raw",
+                )
+                .expect("create failed");
+                let mut level2file = File::create(
+                    outputDir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "."
+                        + (index).to_string().as_str()
+                        + ".l2.raw",
+                )
+                .expect("create failed");
+                let mut level3file = File::create(
+                    outputDir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "."
+                        + (index).to_string().as_str()
+                        + ".l3.raw",
+                )
+                .expect("create failed");
 
-            let mut level1 = subdivide_triangle_multiple(t, 1);
-            let mut level2 = subdivide_triangle_multiple(t, 2);
-            let mut level3 = subdivide_triangle_multiple(t, 3);
+                let mut level1 = subdivide_triangle_multiple(t, 3);
+                let mut level2 = subdivide_triangle_multiple(t, 5);
+                let mut level3 = subdivide_triangle_multiple(t, 7);
 
-            let t = normalize_triangle(&t);
-            let t = scale_triangle(&t, input, scale, terrain_scale);
-            write_triangle(&mut level0file, &t);
+                // let t = normalize_triangle(&t);
+                // let t = scale_triangle(&t, input, scale, terrain_scale);
+                // write_triangle(&mut level0file, &t);
 
-            level1.iter_mut().for_each(|t| {
-                let t = normalize_triangle(&t);
-                let t = scale_triangle(&t, input, scale, terrain_scale);
-                write_triangle(&mut level1file, &t);
+                level1.iter_mut().for_each(|t| {
+                    let t = normalize_triangle(&t);
+                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    write_triangle(&mut level1file, &t);
+                });
+
+                level2.iter_mut().for_each(|t| {
+                    let t = normalize_triangle(&t);
+                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    write_triangle(&mut level2file, &t);
+                });
+
+                level3.iter_mut().for_each(|t| {
+                    let t = normalize_triangle(&t);
+                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    write_triangle(&mut level3file, &t);
+                });
+                level1file.flush().unwrap();
+                level2file.flush().unwrap();
+                level3file.flush().unwrap();
             });
 
-            level2.iter_mut().for_each(|t| {
-                let t = normalize_triangle(&t);
-                let t = scale_triangle(&t, input, scale, terrain_scale);
-                write_triangle(&mut level2file, &t);
-            });
-
-            level3.iter_mut().for_each(|t| {
-                let t = normalize_triangle(&t);
-                let t = scale_triangle(&t, input, scale, terrain_scale);
-                write_triangle(&mut level3file, &t);
-            });
-            level0file.flush().unwrap();
-            level1file.flush().unwrap();
-            level2file.flush().unwrap();
-            level3file.flush().unwrap();
+            // let mut triangles = subdivide_triangle(&triangle);
+            // triangles.iter_mut().for_each(|t0| {
+            //     let mut triangles = subdivide_triangle(t0);
+            //     triangles.iter_mut().for_each(|t1| {
+            //         let mut triangles = subdivide_triangle(t1);
+            //         triangles.iter_mut().for_each(|t2| {
+            //             let mut triangles = subdivide_triangle(t2);
+            //             triangles.iter_mut().for_each(|t| {
+            //                 normalize_triangle(t);
+            //                 scale_triangle(t, input, scale, terrain_scale);
+            //                 write_triangle(&mut file, t);
+            //             });
+            //         });
+            //     });
+            // });
         });
-
-        // let mut triangles = subdivide_triangle(&triangle);
-        // triangles.iter_mut().for_each(|t0| {
-        //     let mut triangles = subdivide_triangle(t0);
-        //     triangles.iter_mut().for_each(|t1| {
-        //         let mut triangles = subdivide_triangle(t1);
-        //         triangles.iter_mut().for_each(|t2| {
-        //             let mut triangles = subdivide_triangle(t2);
-        //             triangles.iter_mut().for_each(|t| {
-        //                 normalize_triangle(t);
-        //                 scale_triangle(t, input, scale, terrain_scale);
-        //                 write_triangle(&mut file, t);
-        //             });
-        //         });
-        //     });
-        // });
-    });
 }
