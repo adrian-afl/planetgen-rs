@@ -1,17 +1,18 @@
-use glam::{DMat4, DVec2, DVec3, DVec4, Mat4};
+use crate::math_util::mix;
+use glam::{DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
 use std::f64::consts::PI;
 
-pub struct CubemapDataLayer<const RES: usize> {
-    px: [f64; RES],
-    py: [f64; RES],
-    pz: [f64; RES],
+pub struct CubeMapDataLayer<const RES: usize> {
+    px: Vec<f64>,
+    py: Vec<f64>,
+    pz: Vec<f64>,
 
-    nx: [f64; RES],
-    ny: [f64; RES],
-    nz: [f64; RES],
+    nx: Vec<f64>,
+    ny: Vec<f64>,
+    nz: Vec<f64>,
 }
 
-enum CubeMapFace {
+pub enum CubeMapFace {
     PX,
     PY,
     PZ,
@@ -78,7 +79,7 @@ fn project_direction(face: &CubeMapFace, coord: DVec3) -> Option<DVec2> {
     {
         return None;
     }
-    return Some(DVec2::new(transformed.x, transformed.y) * 0.5 + 0.5);
+    Some(DVec2::new(transformed.x, transformed.y) * 0.5 + 0.5)
 }
 
 fn get_face(coord: DVec3) -> CubeMapFace {
@@ -102,19 +103,32 @@ fn get_face(coord: DVec3) -> CubeMapFace {
     if projected.is_some() {
         return CubeMapFace::NY;
     }
-    let projected = project_direction(&CubeMapFace::NZ, coord);
+    // let projected = project_direction(&CubeMapFace::NZ, coord);
     // if projected.is_some() {
     //     return CubeMapFace::NZ;
     // }
     CubeMapFace::NZ // nothing else left
 }
 
-impl<const RES: usize> CubemapDataLayer<RES> {
-    fn set(&mut self, coord: DVec3, value: f64) {
-        let face = get_face(coord);
-        let uv01 = project_direction(&face, coord).unwrap();
-        let uv = (uv01 * (RES as f64)).floor();
-        let index = (uv.y * (RES as f64) + uv.x) as usize;
+impl<const RES: usize> CubeMapDataLayer<RES> {
+    pub fn new() -> CubeMapDataLayer<RES> {
+        CubeMapDataLayer {
+            px: vec![0.0; RES * RES],
+            py: vec![0.0; RES * RES],
+            pz: vec![0.0; RES * RES],
+
+            nx: vec![0.0; RES * RES],
+            ny: vec![0.0; RES * RES],
+            nz: vec![0.0; RES * RES],
+        }
+    }
+
+    fn is_out_of_bounds(x: isize, y: isize) -> bool {
+        (x as usize) >= RES || (y as usize) >= RES || x < 0 || y < 0
+    }
+
+    pub fn set_pixel(&mut self, face: &CubeMapFace, x: usize, y: usize, value: f64) {
+        let index = y * (RES) + x;
         match face {
             CubeMapFace::PX => self.px[index] = value,
             CubeMapFace::PY => self.py[index] = value,
@@ -125,11 +139,33 @@ impl<const RES: usize> CubemapDataLayer<RES> {
         }
     }
 
-    fn get(&mut self, coord: DVec3) -> f64 {
-        let face = get_face(coord);
-        let uv01 = project_direction(&face, coord).unwrap();
-        let uv = (uv01 * (RES as f64)).floor();
-        let index = (uv.y * (RES as f64) + uv.x) as usize;
+    pub fn pixel_coords_to_direction(&self, face: &CubeMapFace, x: usize, y: usize) -> DVec3 {
+        let inv_projection = create_projection(face).inverse();
+        let uvx = x as f64 / RES as f64;
+        let uvy = y as f64 / RES as f64;
+        let clip = DVec4::new(uvx, uvy, 0.1, 1.0);
+        let transformed = inv_projection * clip;
+        transformed.xyz() / transformed.w
+    }
+
+    // TODO if this is to be used, it needs to also do bilinear filtering
+    // fn set(&mut self, coord: DVec3, value: f64) {
+    //     let face = get_face(coord);
+    //     let uv01 = project_direction(&face, coord).unwrap();
+    //     let uv = (uv01 * (RES as f64)).floor();
+    //     let index = (uv.y * (RES as f64) + uv.x) as usize;
+    //     match face {
+    //         CubeMapFace::PX => self.px[index] = value,
+    //         CubeMapFace::PY => self.py[index] = value,
+    //         CubeMapFace::PZ => self.pz[index] = value,
+    //         CubeMapFace::NX => self.nx[index] = value,
+    //         CubeMapFace::NY => self.nx[index] = value,
+    //         CubeMapFace::NZ => self.nx[index] = value,
+    //     }
+    // }
+
+    pub fn get_pixel(&mut self, face: &CubeMapFace, x: usize, y: usize) -> f64 {
+        let index = y * (RES) + x;
         match face {
             CubeMapFace::PX => self.px[index],
             CubeMapFace::PY => self.py[index],
@@ -138,5 +174,30 @@ impl<const RES: usize> CubemapDataLayer<RES> {
             CubeMapFace::NY => self.nx[index],
             CubeMapFace::NZ => self.nx[index],
         }
+    }
+
+    pub fn get(&mut self, coord: DVec3) -> f64 {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (RES as f64));
+        let mut pixel1 = (uv * (RES as f64)).floor();
+        let mut pixel2 = (uv * (RES as f64)).ceil();
+        let pixel_fract = (uv * (RES as f64)).fract_gl();
+
+        if (Self::is_out_of_bounds(pixel1.x as isize, pixel1.y as isize)) {
+            pixel1.clone_from(&pixel2);
+        } else if (Self::is_out_of_bounds(pixel2.x as isize, pixel2.y as isize)) {
+            pixel2.clone_from(&pixel1);
+        }
+
+        let value11 = self.get_pixel(&face, pixel1.x as usize, pixel1.y as usize);
+        let value12 = self.get_pixel(&face, pixel1.x as usize, pixel2.y as usize);
+        let value21 = self.get_pixel(&face, pixel2.x as usize, pixel1.y as usize);
+        let value22 = self.get_pixel(&face, pixel2.x as usize, pixel2.y as usize);
+
+        let d1 = mix(value11, value21, pixel_fract.x);
+        let d2 = mix(value12, value22, pixel_fract.x);
+
+        mix(d1, d2, pixel_fract.y)
     }
 }
