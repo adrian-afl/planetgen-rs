@@ -1,3 +1,4 @@
+mod cubemap_data;
 mod erosion;
 mod input_data;
 mod noise;
