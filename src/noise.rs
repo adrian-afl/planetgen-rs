@@ -1,19 +1,5 @@
 use glam::DVec3;
-use std::hash::{DefaultHasher, Hash, Hasher};
-
-fn hash(v: f64) -> f64 {
-    let mut s = DefaultHasher::new();
-    s.write_u64(v.to_bits());
-    (s.finish() as f64) / (u64::MAX as f64)
-}
-
-pub fn hash3d(v: DVec3) -> f64 {
-    let mut s = DefaultHasher::new();
-    s.write_u64(v.x.to_bits());
-    s.write_u64(v.y.to_bits());
-    s.write_u64(v.z.to_bits());
-    (s.finish() as f64) / (u64::MAX as f64)
-}
+use crate::random::random_3d_to_1d;
 
 fn mix(a: f64, b: f64, m: f64) -> f64 {
     a * (1.0 - m) + b * m
@@ -42,15 +28,15 @@ pub fn value_noise(x: DVec3) -> f64 {
     let rbf = p + VEC7;
     let rtf = p + VEC8;
 
-    let l0candidate1 = hash3d(lbz);
-    let l0candidate2 = hash3d(rbz);
-    let l0candidate3 = hash3d(ltz);
-    let l0candidate4 = hash3d(rtz);
+    let l0candidate1 = random_3d_to_1d(lbz);
+    let l0candidate2 = random_3d_to_1d(rbz);
+    let l0candidate3 = random_3d_to_1d(ltz);
+    let l0candidate4 = random_3d_to_1d(rtz);
 
-    let l0candidate5 = hash3d(lbf);
-    let l0candidate6 = hash3d(rbf);
-    let l0candidate7 = hash3d(ltf);
-    let l0candidate8 = hash3d(rtf);
+    let l0candidate5 = random_3d_to_1d(lbf);
+    let l0candidate6 = random_3d_to_1d(rbf);
+    let l0candidate7 = random_3d_to_1d(ltf);
+    let l0candidate8 = random_3d_to_1d(rtf);
 
     let l1candidate1 = mix(l0candidate1, l0candidate2, fr.x);
     let l1candidate2 = mix(l0candidate3, l0candidate4, fr.x);
