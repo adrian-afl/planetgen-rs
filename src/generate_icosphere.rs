@@ -150,7 +150,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                     outputDir.to_owned()
                         + "/"
                         + (index_main).to_string().as_str()
-                        + "."
+                        + "-"
                         + (index).to_string().as_str()
                         + ".l1.raw",
                 )
@@ -160,7 +160,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                     outputDir.to_owned()
                         + "/"
                         + (index_main).to_string().as_str()
-                        + "."
+                        + "-"
                         + (index).to_string().as_str()
                         + ".l2.raw",
                 )
@@ -170,7 +170,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                     outputDir.to_owned()
                         + "/"
                         + (index_main).to_string().as_str()
-                        + "."
+                        + "-"
                         + (index).to_string().as_str()
                         + ".l3.raw",
                 )

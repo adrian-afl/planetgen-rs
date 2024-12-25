@@ -84,7 +84,7 @@ fn main() {
     });
 
     println!("Saving icosphere");
-    generate_icosphere_raw("icosphere", &cube_map, 6378000.0, 10000.0);
+    generate_icosphere_raw("icosphere", &cube_map, 6378000.0, 100000.0);
 
     let duration = start.elapsed();
     println!("Time elapsed in expensive_function() is: {:?}", duration);
