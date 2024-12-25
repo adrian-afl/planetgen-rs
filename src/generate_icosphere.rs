@@ -4,6 +4,7 @@ use glam::DVec3;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 
@@ -65,18 +66,42 @@ fn scale_triangle<const RES: usize>(
     ]
 }
 
+fn get_triangle_center(tri: &Triangle, scale: f64) -> DVec3 {
+    ((tri[0] + tri[1] + tri[2]) / 3.0).normalize() * scale
+}
+// fn get_section_center(tris: &Vec<Triangle>) -> DVec3 {
+//     let mut avg = DVec3::new(0.0, 0.0, 0.0);
+//     tris.iter().for_each(|tri| avg += tri[0] + tri[1] + tri[2]);
+//
+//     avg / 3.0 / tris.len() as f64
+// }
+
+fn translate_triangle(tri: &Triangle, translation: DVec3) -> Triangle {
+    [
+        tri[0] + translation,
+        tri[1] + translation,
+        tri[2] + translation,
+    ]
+}
+
 fn get_triangle_normal(tri: &Triangle) -> DVec3 {
     (tri[1] - tri[0]).cross(tri[2] - tri[0]).normalize()
 }
 
 fn write_vector(file: &mut File, v: DVec3, n: DVec3) {
-    file.write(&(v.x as f32).to_le_bytes());
-    file.write(&(v.y as f32).to_le_bytes());
-    file.write(&(v.z as f32).to_le_bytes());
+    file.write(&(v.x as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write(&(v.y as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write(&(v.z as f32).to_le_bytes())
+        .expect("Write failed");
 
-    file.write(&(n.x as f32).to_le_bytes());
-    file.write(&(n.y as f32).to_le_bytes());
-    file.write(&(n.z as f32).to_le_bytes());
+    file.write(&(n.x as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write(&(n.y as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write(&(n.z as f32).to_le_bytes())
+        .expect("Write failed");
 }
 
 fn write_triangle(file: &mut File, tri: &Triangle) {
@@ -94,11 +119,28 @@ pub fn generate_icosphere_raw<const RES: usize>(
 ) {
     let base = get_base_icosphere();
 
+    let mut metadata_file =
+        File::create(outputDir.to_owned() + "/metadata.ini").expect("create failed");
+
     // let mut first_subdivision: Vec<Triangle> = vec![];
     base.into_iter()
         .enumerate()
         .for_each(|(index_main, triangle)| {
             let mut level0 = subdivide_triangle_multiple(triangle, 2);
+
+            // not parallel to not worry about borrow checker
+            level0
+                .clone()
+                .into_iter()
+                .enumerate()
+                .for_each(|(index, t)| {
+                    let part_center = get_triangle_center(&t, scale);
+                    let data = format!(
+                        "{index_main}-{index}={},{},{}\n",
+                        part_center.x, part_center.y, part_center.z
+                    );
+                    metadata_file.write(data.as_bytes()).expect("Write failed");
+                });
 
             level0.into_par_iter().enumerate().for_each(|(index, t)| {
                 // let mut level0file =
@@ -113,6 +155,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                         + ".l1.raw",
                 )
                 .expect("create failed");
+
                 let mut level2file = File::create(
                     outputDir.to_owned()
                         + "/"
@@ -122,6 +165,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                         + ".l2.raw",
                 )
                 .expect("create failed");
+
                 let mut level3file = File::create(
                     outputDir.to_owned()
                         + "/"
@@ -131,6 +175,8 @@ pub fn generate_icosphere_raw<const RES: usize>(
                         + ".l3.raw",
                 )
                 .expect("create failed");
+
+                let part_center = get_triangle_center(&t, scale);
 
                 let mut level1 = subdivide_triangle_multiple(t, 3);
                 let mut level2 = subdivide_triangle_multiple(t, 5);
@@ -143,18 +189,21 @@ pub fn generate_icosphere_raw<const RES: usize>(
                 level1.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
                     let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = translate_triangle(&t, -part_center);
                     write_triangle(&mut level1file, &t);
                 });
 
                 level2.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
                     let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = translate_triangle(&t, -part_center);
                     write_triangle(&mut level2file, &t);
                 });
 
                 level3.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
                     let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = translate_triangle(&t, -part_center);
                     write_triangle(&mut level3file, &t);
                 });
                 level1file.flush().unwrap();
@@ -178,4 +227,5 @@ pub fn generate_icosphere_raw<const RES: usize>(
             //     });
             // });
         });
+    metadata_file.flush().unwrap();
 }
