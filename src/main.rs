@@ -23,9 +23,6 @@ fn polar_to_xyz(xyin: DVec2) -> DVec3 {
 }
 
 fn main() {
-    let imgx = 2048 * 2;
-    let imgy = 2048;
-
     // let mut imgbuf = image::ImageBuffer::new(imgx, imgy);
 
     // for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
@@ -58,30 +55,27 @@ fn main() {
         (0..RES).into_iter().for_each(|y| {
             (0..RES).into_iter().for_each(|x| {
                 let dir = cube_map.pixel_coords_to_direction(face, x, y);
-
-                let value = fbm(dir * 1.0, 5, 3.0, 0.6);
+                //println!("{}", dir);
+                let value = fbm(dir * 100.0, 5, 3.0, 0.6);
 
                 cube_map.set_pixel(face, x, y, value);
             });
         });
     });
 
-    // imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-    //     let p = polar_to_xyz(DVec2::new(
-    //         (x as f64) / (imgx as f64),
-    //         (y as f64) / (imgy as f64),
-    //     ));
-    //     let v3 = DVec3::new(0.0, (x as f64) / (imgx as f64), (y as f64) / (imgy as f64));
-    //
-    //     let value = fbm(p * 1.0, 10, 3.0, 0.6);
-    //
-    //     *pixel = image::Luma([(value * 255.0) as u8]);
-    // });
+    faces.iter().for_each(|face| {
+        let mut imgbuf = image::ImageBuffer::new(RES as u32, RES as u32);
+        imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
+            let value = cube_map.get_pixel(face, x as usize, y as usize);
+
+            *pixel = image::Luma([(value * 255.0) as u8]);
+        });
+        imgbuf.save(format!("face_{}.png", face)).unwrap();
+    });
+
     let duration = start.elapsed();
     println!("Time elapsed in expensive_function() is: {:?}", duration);
 
     let arr: [f64; 5] = random_1d_to_array(1.234);
     println!("{:?}", arr);
-
-    // imgbuf.save("fractal.png").unwrap();
 }

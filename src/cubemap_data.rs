@@ -1,6 +1,7 @@
 use crate::math_util::mix;
 use glam::{DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
 use std::f64::consts::PI;
+use std::fmt;
 
 pub struct CubeMapDataLayer<const RES: usize> {
     px: Vec<f64>,
@@ -19,6 +20,19 @@ pub enum CubeMapFace {
     NX,
     NY,
     NZ,
+}
+
+impl fmt::Display for CubeMapFace {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CubeMapFace::PX => write!(f, "{}", "PX"),
+            CubeMapFace::PY => write!(f, "{}", "PY"),
+            CubeMapFace::PZ => write!(f, "{}", "PZ"),
+            CubeMapFace::NX => write!(f, "{}", "NX"),
+            CubeMapFace::NY => write!(f, "{}", "NY"),
+            CubeMapFace::NZ => write!(f, "{}", "NZ"),
+        }
+    }
 }
 
 fn create_projection(face: &CubeMapFace) -> DMat4 {
@@ -103,11 +117,11 @@ fn get_face(coord: DVec3) -> CubeMapFace {
     if projected.is_some() {
         return CubeMapFace::NY;
     }
-    // let projected = project_direction(&CubeMapFace::NZ, coord);
-    // if projected.is_some() {
-    //     return CubeMapFace::NZ;
-    // }
-    CubeMapFace::NZ // nothing else left
+    let projected = project_direction(&CubeMapFace::NZ, coord);
+    if projected.is_some() {
+        return CubeMapFace::NZ;
+    }
+    panic!("Impossible situation - no face found")
 }
 
 impl<const RES: usize> CubeMapDataLayer<RES> {
@@ -134,8 +148,8 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
             CubeMapFace::PY => self.py[index] = value,
             CubeMapFace::PZ => self.pz[index] = value,
             CubeMapFace::NX => self.nx[index] = value,
-            CubeMapFace::NY => self.nx[index] = value,
-            CubeMapFace::NZ => self.nx[index] = value,
+            CubeMapFace::NY => self.ny[index] = value,
+            CubeMapFace::NZ => self.nz[index] = value,
         }
     }
 
@@ -143,7 +157,7 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
         let inv_projection = create_projection(face).inverse();
         let uvx = x as f64 / RES as f64;
         let uvy = y as f64 / RES as f64;
-        let clip = DVec4::new(uvx, uvy, 0.1, 1.0);
+        let clip = DVec4::new(uvx * 2.0 - 1.0, uvy * 2.0 - 1.0, 0.1, 1.0);
         let transformed = inv_projection * clip;
         transformed.xyz() / transformed.w
     }
@@ -164,15 +178,15 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
     //     }
     // }
 
-    pub fn get_pixel(&mut self, face: &CubeMapFace, x: usize, y: usize) -> f64 {
+    pub fn get_pixel(&self, face: &CubeMapFace, x: usize, y: usize) -> f64 {
         let index = y * (RES) + x;
         match face {
             CubeMapFace::PX => self.px[index],
             CubeMapFace::PY => self.py[index],
             CubeMapFace::PZ => self.pz[index],
             CubeMapFace::NX => self.nx[index],
-            CubeMapFace::NY => self.nx[index],
-            CubeMapFace::NZ => self.nx[index],
+            CubeMapFace::NY => self.ny[index],
+            CubeMapFace::NZ => self.nz[index],
         }
     }
 
