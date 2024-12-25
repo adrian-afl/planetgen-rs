@@ -1,11 +1,14 @@
+mod base_icosphere;
 mod cubemap_data;
 mod erosion;
+mod generate_icosphere;
 mod input_data;
 mod math_util;
 mod noise;
 mod random;
 
 use crate::cubemap_data::{CubeMapDataLayer, CubeMapFace};
+use crate::generate_icosphere::generate_icosphere_raw;
 use crate::noise::fbm;
 use crate::random::random_1d_to_array;
 use glam::{DVec2, DVec3};
@@ -13,6 +16,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::f64::consts::PI;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::path::Path;
 use std::time::Instant;
 
 fn polar_to_xyz(xyin: DVec2) -> DVec3 {
@@ -47,12 +51,13 @@ fn main() {
         CubeMapFace::NZ,
     ];
 
-    const RES: usize = 128;
+    const RES: usize = 256;
     let mut cube_map: CubeMapDataLayer<RES> = CubeMapDataLayer::new();
 
     let start = Instant::now();
 
     faces.iter().for_each(|face| {
+        println!("Generating face {}, res: {}", face, RES);
         (0..RES).into_iter().for_each(|y| {
             (0..RES).into_iter().for_each(|x| {
                 let dir = cube_map.pixel_coords_to_direction(face, x, y);
@@ -65,8 +70,9 @@ fn main() {
     });
 
     faces.iter().for_each(|face| {
+        println!("Saving face {}, res: {}", face, RES);
         let mut imgbuf = image::ImageBuffer::new(RES as u32, RES as u32);
-        imgbuf.enumerate_pixels_mut().for_each(|(x, y, pixel)| {
+        imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
             let value = cube_map.get(dir);
 
@@ -76,6 +82,9 @@ fn main() {
             .save(format!("cubemap_visualizer/public/face_{}.png", face))
             .unwrap();
     });
+
+    println!("Saving icosphere");
+    generate_icosphere_raw(Path::new("icosphere.raw"), &cube_map, 5.0, 1.0);
 
     let duration = start.elapsed();
     println!("Time elapsed in expensive_function() is: {:?}", duration);

@@ -1,5 +1,7 @@
-use glam::DVec3;
 use crate::random::random_3d_to_1d;
+use glam::DVec3;
+use rayon::prelude::*;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 fn mix(a: f64, b: f64, m: f64) -> f64 {
     a * (1.0 - m) + b * m
@@ -51,14 +53,22 @@ pub fn value_noise(x: DVec3) -> f64 {
     l3candidate1
 }
 
-pub fn fbm(mut pos: DVec3, iterations: i32, scaler: f64, weighter: f64) -> f64 {
+pub fn fbm(pos: DVec3, iterations: i32, scaler: f64, weighter: f64) -> f64 {
     let mut res = 0.0;
     let mut w = 0.5;
-    pos += 2.0;
+    let mut s = 1.0;
     for i in 0..iterations {
-        res += value_noise(pos) * w;
-        pos *= scaler;
+        res += value_noise((pos + 2.0) * s) * w;
+        s *= scaler;
         w *= weighter;
     }
     res
+    // let mut atomic = AtomicI64::new(0);
+    // (0..iterations).into_par_iter().for_each(|i| {
+    //     let w = 0.5f64.powf(i as f64);
+    //     let s = (i as f64) * 3.0 + 1.0;
+    //     let val = value_noise((pos + 2.0) * s) * w;
+    //     atomic.fetch_add((val * (i32::MAX) as f64) as i64, Ordering::Relaxed);
+    // });
+    // atomic.into_inner() as f64 / (i32::MAX) as f64 / iterations as f64
 }
