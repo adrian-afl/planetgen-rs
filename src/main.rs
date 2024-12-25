@@ -47,7 +47,7 @@ fn main() {
         CubeMapFace::NZ,
     ];
 
-    const RES: usize = 1024;
+    const RES: usize = 128;
     let mut cube_map: CubeMapDataLayer<RES> = CubeMapDataLayer::new();
 
     let start = Instant::now();
@@ -66,8 +66,9 @@ fn main() {
 
     faces.iter().for_each(|face| {
         let mut imgbuf = image::ImageBuffer::new(RES as u32, RES as u32);
-        imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-            let value = cube_map.get_pixel(face, x as usize, y as usize);
+        imgbuf.enumerate_pixels_mut().for_each(|(x, y, pixel)| {
+            let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
+            let value = cube_map.get(dir);
 
             *pixel = image::Luma([(value * 255.0) as u8]);
         });
