@@ -36,50 +36,40 @@ impl fmt::Display for CubeMapFace {
 }
 
 fn create_projection(face: &CubeMapFace) -> DMat4 {
-    match (face) {
-        CubeMapFace::PX => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(1.0, 0.0, 0.0),
-                DVec3::new(0.0, 1.0, 0.0),
-            ))
-        }
-        CubeMapFace::PY => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(0.0, 1.0, 0.0),
-                DVec3::new(0.0, 0.0, -1.0),
-            ))
-        }
-        CubeMapFace::PZ => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(0.0, 0.0, 1.0),
-                DVec3::new(0.0, 1.0, 0.0),
-            ))
-        }
-        CubeMapFace::NX => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(-1.0, 0.0, 0.0),
-                DVec3::new(0.0, 1.0, 0.0),
-            ))
-        }
-        CubeMapFace::NY => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(0.0, -1.0, 0.0),
-                DVec3::new(0.0, 0.0, 1.0),
-            ))
-        }
-        CubeMapFace::NZ => {
-            DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0).mul_mat4(&DMat4::look_to_rh(
-                DVec3::new(0.0, 0.0, 0.0),
-                DVec3::new(0.0, 0.0, -1.0),
-                DVec3::new(0.0, 1.0, 0.0),
-            ))
-        }
-    }
+    let perspective = DMat4::perspective_rh_gl(PI / 2.0, 1.0, 0.01, 10.0);
+    let view = match (face) {
+        CubeMapFace::PX => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(1.0, 0.0, 0.0),
+            DVec3::new(0.0, 1.0, 0.0),
+        ),
+        CubeMapFace::PY => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(0.0, 1.0, 0.0),
+            DVec3::new(0.0, 0.0, -1.0),
+        ),
+        CubeMapFace::PZ => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(0.0, 0.0, 1.0),
+            DVec3::new(0.0, 1.0, 0.0),
+        ),
+        CubeMapFace::NX => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(-1.0, 0.0, 0.0),
+            DVec3::new(0.0, 1.0, 0.0),
+        ),
+        CubeMapFace::NY => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(0.0, -1.0, 0.0),
+            DVec3::new(0.0, 0.0, 1.0),
+        ),
+        CubeMapFace::NZ => DMat4::look_to_rh(
+            DVec3::new(0.0, 0.0, 0.0),
+            DVec3::new(0.0, 0.0, -1.0),
+            DVec3::new(0.0, 1.0, 0.0),
+        ),
+    };
+    perspective.mul_mat4(&view)
 }
 
 fn project_direction(face: &CubeMapFace, coord: DVec3) -> Option<DVec2> {
@@ -157,9 +147,9 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
         let inv_projection = create_projection(face).inverse();
         let uvx = x as f64 / RES as f64;
         let uvy = y as f64 / RES as f64;
-        let clip = DVec4::new(uvx * 2.0 - 1.0, uvy * 2.0 - 1.0, 0.1, 1.0);
+        let clip = DVec4::new(-(uvx * 2.0 - 1.0), -(uvy * 2.0 - 1.0), 0.1, 1.0);
         let transformed = inv_projection * clip;
-        transformed.xyz() / transformed.w
+        (transformed.xyz() / transformed.w).normalize()
     }
 
     // TODO if this is to be used, it needs to also do bilinear filtering

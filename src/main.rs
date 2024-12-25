@@ -12,6 +12,7 @@ use glam::{DVec2, DVec3};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::f64::consts::PI;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::time::Instant;
 
 fn polar_to_xyz(xyin: DVec2) -> DVec3 {
@@ -55,8 +56,8 @@ fn main() {
         (0..RES).into_iter().for_each(|y| {
             (0..RES).into_iter().for_each(|x| {
                 let dir = cube_map.pixel_coords_to_direction(face, x, y);
-                //println!("{}", dir);
-                let value = fbm(dir * 100.0, 5, 3.0, 0.6);
+                let value = fbm(dir * 1.0, 5, 3.0, 0.6);
+                // let value = dir.dot(DVec3::new(1.0, 1.0, 1.0).normalize()) * 0.5 + 0.5;
 
                 cube_map.set_pixel(face, x, y, value);
             });
@@ -70,7 +71,9 @@ fn main() {
 
             *pixel = image::Luma([(value * 255.0) as u8]);
         });
-        imgbuf.save(format!("face_{}.png", face)).unwrap();
+        imgbuf
+            .save(format!("cubemap_visualizer/public/face_{}.png", face))
+            .unwrap();
     });
 
     let duration = start.elapsed();
