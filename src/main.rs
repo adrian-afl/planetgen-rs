@@ -51,7 +51,7 @@ fn main() {
         CubeMapFace::NZ,
     ];
 
-    const RES: usize = 256;
+    const RES: usize = 1024;
     let mut cube_map: CubeMapDataLayer<RES> = CubeMapDataLayer::new();
 
     let start = Instant::now();
@@ -84,7 +84,7 @@ fn main() {
     });
 
     println!("Saving icosphere");
-    generate_icosphere_raw(Path::new("icosphere.raw"), &cube_map, 5.0, 1.0);
+    generate_icosphere_raw("icosphere", &cube_map, 5.0, 1.0);
 
     let duration = start.elapsed();
     println!("Time elapsed in expensive_function() is: {:?}", duration);
