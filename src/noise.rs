@@ -53,12 +53,16 @@ pub fn value_noise(x: DVec3) -> f64 {
     l3candidate1
 }
 
-pub fn fbm(pos: DVec3, iterations: i32, scaler: f64, weighter: f64) -> f64 {
+pub fn super_value_noise(x: DVec3) -> f64 {
+    (value_noise(x) + value_noise(x + 4.5)) * 0.5
+}
+
+pub fn fbm(pos: DVec3, iterations: u16, scaler: f64, weighter: f64) -> f64 {
     let mut res = 0.0;
     let mut w = 0.5;
     let mut s = 1.0;
     for i in 0..iterations {
-        res += value_noise((pos + 2.0) * s) * w;
+        res += super_value_noise((pos + 2.0) * s) * w;
         s *= scaler;
         w *= weighter;
     }

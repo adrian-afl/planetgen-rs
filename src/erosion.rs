@@ -33,10 +33,12 @@ struct ErosionDropletRunResult {
     modifications: Vec<ErosionDropletModification>,
 }
 
-pub fn erosion_run<const RES: usize>(
-    cubemap_data: &mut CubeMapDataLayer<RES>,
-    iterations: i32,
-    droplets_per_iteration: i32,
+pub fn erosion_run(
+    cubemap_data: &mut CubeMapDataLayer,
+    iterations: u16,
+    droplets_per_iteration: u16,
+    sphere_radius: f64,
+    terrain_height: f64,
 ) {
     (0..iterations).for_each(|iteration| {
         println!("Erosion iteration: {iteration}");
@@ -47,27 +49,34 @@ pub fn erosion_run<const RES: usize>(
                     modifications: Vec::new(),
                 };
                 let mut droplet = ErosionDroplet {
-                    position: (random_2d_to_3d(DVec2::new(iteration as f64, droplet_num as f64))
-                        * 2.0
-                        - 1.0)
-                        .normalize(),
+                    position: (sphere_radius)
+                        * (random_2d_to_3d(DVec2::new(iteration as f64, droplet_num as f64)) * 2.0
+                            - 1.0)
+                            .normalize(),
                     velocity: DVec3::new(0.0, 0.0, 0.0),
                     accumulation: 0.0,
                     water_left: 1.0,
                 };
                 while droplet.water_left > 0.0 {
-                    let normal = cubemap_data.get_normal(droplet.position, 0.0001);
+                    let normal = cubemap_data.get_normal(
+                        droplet.position.clone().normalize(),
+                        0.0001,
+                        sphere_radius,
+                        terrain_height,
+                    );
 
                     run.modifications.push(ErosionDropletModification {
-                        position: droplet.position,
+                        position: droplet.position.clone().normalize(),
                         delta: -0.0001,
                     });
 
-                    droplet.velocity +=
-                        (droplet.position + normal * 0.00002).normalize() - droplet.position;
-                    droplet.position = (droplet.position + droplet.velocity * 0.002).normalize();
-                    droplet.accumulation += 0.00001;
-                    droplet.water_left -= 0.00001;
+                    droplet.velocity = (droplet.position.clone().normalize() + normal * 2000.2)
+                        .normalize()
+                        - droplet.position.clone().normalize();
+                    droplet.position += droplet.velocity * 2000.2;
+                    droplet.position = sphere_radius * droplet.position.clone().normalize();
+                    droplet.accumulation += 0.0001;
+                    droplet.water_left -= 0.000001;
                     // if (droplet_num == 0 && iteration == 0) {
                     //     println!(
                     //         "p {}, v {}, acc {}, wl: {}",
@@ -79,7 +88,7 @@ pub fn erosion_run<const RES: usize>(
                     // }
                 }
                 run.modifications.push(ErosionDropletModification {
-                    position: droplet.position,
+                    position: droplet.position.clone().normalize(),
                     delta: droplet.accumulation,
                 });
                 run

@@ -23,7 +23,7 @@ fn subdivide_triangle(tri: &Triangle) -> [Triangle; 4] {
     ]
 }
 
-fn subdivide_triangle_multiple(tri: Triangle, count: i32) -> Vec<Triangle> {
+fn subdivide_triangle_multiple(tri: Triangle, count: u16) -> Vec<Triangle> {
     let mut triangles = vec![tri];
     for i in 0..count {
         let mut tmp: Vec<Triangle> = vec![];
@@ -43,19 +43,14 @@ fn normalize_triangle(tri: &Triangle) -> Triangle {
     [tri[0].normalize(), tri[1].normalize(), tri[2].normalize()]
 }
 
-fn scale_vector<const RES: usize>(
-    v: DVec3,
-    input: &CubeMapDataLayer<RES>,
-    scale: f64,
-    terrain_scale: f64,
-) -> DVec3 {
+fn scale_vector(v: DVec3, input: &CubeMapDataLayer, scale: f64, terrain_scale: f64) -> DVec3 {
     let value = input.get(v);
     v * (scale + terrain_scale * value)
 }
 
-fn scale_triangle<const RES: usize>(
+fn scale_triangle(
     tri: &Triangle,
-    input: &CubeMapDataLayer<RES>,
+    input: &CubeMapDataLayer,
     scale: f64,
     terrain_scale: f64,
 ) -> Triangle {
@@ -104,18 +99,55 @@ fn write_vector(file: &mut File, v: DVec3, n: DVec3) {
         .expect("Write failed");
 }
 
-fn write_triangle(file: &mut File, tri: &Triangle) {
-    let normal = get_triangle_normal(tri);
-    write_vector(file, tri[0], normal);
-    write_vector(file, tri[1], normal);
-    write_vector(file, tri[2], normal);
+fn write_triangle(
+    input: &CubeMapDataLayer,
+    sphere_radius: f64,
+    terrain_height: f64,
+    file: &mut File,
+    tri: &Triangle,
+) {
+    //let normal = input.get_normal();//get_triangle_normal(tri);
+    write_vector(
+        file,
+        tri[0],
+        input.get_normal(
+            tri[0].clone().normalize(),
+            0.0001,
+            sphere_radius,
+            terrain_height,
+        ),
+    );
+    write_vector(
+        file,
+        tri[1],
+        input.get_normal(
+            tri[1].clone().normalize(),
+            0.0001,
+            sphere_radius,
+            terrain_height,
+        ),
+    );
+    write_vector(
+        file,
+        tri[2],
+        input.get_normal(
+            tri[2].clone().normalize(),
+            0.0001,
+            sphere_radius,
+            terrain_height,
+        ),
+    );
 }
 
-pub fn generate_icosphere_raw<const RES: usize>(
+pub fn generate_icosphere_raw(
     outputDir: &str,
-    input: &CubeMapDataLayer<RES>,
-    scale: f64,
+    input: &CubeMapDataLayer,
+    sphere_radius: f64,
     terrain_scale: f64,
+    subdivide_initial: u16,
+    subdivide_level1: u16,
+    subdivide_level2: u16,
+    subdivide_level3: u16,
 ) {
     let base = get_base_icosphere();
 
@@ -126,7 +158,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
     base.into_iter()
         .enumerate()
         .for_each(|(index_main, triangle)| {
-            let mut level0 = subdivide_triangle_multiple(triangle, 2);
+            let mut level0 = subdivide_triangle_multiple(triangle, subdivide_initial);
 
             // not parallel to not worry about borrow checker
             level0
@@ -134,7 +166,7 @@ pub fn generate_icosphere_raw<const RES: usize>(
                 .into_iter()
                 .enumerate()
                 .for_each(|(index, t)| {
-                    let part_center = get_triangle_center(&t, scale);
+                    let part_center = get_triangle_center(&t, sphere_radius);
                     let data = format!(
                         "{index_main}-{index}={},{},{}\n",
                         part_center.x, part_center.y, part_center.z
@@ -176,11 +208,11 @@ pub fn generate_icosphere_raw<const RES: usize>(
                 )
                 .expect("create failed");
 
-                let part_center = get_triangle_center(&t, scale);
+                let part_center = get_triangle_center(&t, sphere_radius);
 
-                let mut level1 = subdivide_triangle_multiple(t, 3);
-                let mut level2 = subdivide_triangle_multiple(t, 5);
-                let mut level3 = subdivide_triangle_multiple(t, 7);
+                let mut level1 = subdivide_triangle_multiple(t, subdivide_level1);
+                let mut level2 = subdivide_triangle_multiple(t, subdivide_level2);
+                let mut level3 = subdivide_triangle_multiple(t, subdivide_level3);
 
                 // let t = normalize_triangle(&t);
                 // let t = scale_triangle(&t, input, scale, terrain_scale);
@@ -188,23 +220,23 @@ pub fn generate_icosphere_raw<const RES: usize>(
 
                 level1.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&mut level1file, &t);
+                    write_triangle(&input, sphere_radius, terrain_scale, &mut level1file, &t);
                 });
 
                 level2.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&mut level2file, &t);
+                    write_triangle(&input, sphere_radius, terrain_scale, &mut level2file, &t);
                 });
 
                 level3.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, scale, terrain_scale);
+                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&mut level3file, &t);
+                    write_triangle(&input, sphere_radius, terrain_scale, &mut level3file, &t);
                 });
                 level1file.flush().unwrap();
                 level2file.flush().unwrap();
