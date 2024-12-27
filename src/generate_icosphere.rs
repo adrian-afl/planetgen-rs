@@ -112,7 +112,7 @@ fn write_triangle(
         tri[0],
         input.get_normal(
             tri[0].clone().normalize(),
-            0.0001,
+            0.01,
             sphere_radius,
             terrain_height,
         ),
@@ -122,7 +122,7 @@ fn write_triangle(
         tri[1],
         input.get_normal(
             tri[1].clone().normalize(),
-            0.0001,
+            0.01,
             sphere_radius,
             terrain_height,
         ),
@@ -132,7 +132,7 @@ fn write_triangle(
         tri[2],
         input.get_normal(
             tri[2].clone().normalize(),
-            0.0001,
+            0.01,
             sphere_radius,
             terrain_height,
         ),

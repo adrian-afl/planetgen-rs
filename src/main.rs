@@ -112,7 +112,7 @@ fn main() {
         );
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
-            let value = cube_map.get_normal(dir, 0.0001, args.radius, args.terrain_height);
+            let value = cube_map.get_normal(dir, 0.001, args.radius, args.terrain_height);
 
             *pixel = image::Rgb([
                 (value.x * 255.0) as u8,

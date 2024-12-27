@@ -33,6 +33,10 @@ struct ErosionDropletRunResult {
     modifications: Vec<ErosionDropletModification>,
 }
 
+fn asymptotic(x: f64, limit: f64) -> f64 {
+    (1.0 - 1.0 / x.exp()) * limit
+}
+
 pub fn erosion_run(
     cubemap_data: &mut CubeMapDataLayer,
     iterations: u16,
@@ -58,39 +62,70 @@ pub fn erosion_run(
                     water_left: 1.0,
                 };
                 while droplet.water_left > 0.0 {
+                    let mut delta = 0.0;
+
+                    let erode =
+                        droplet.velocity.length().sqrt().sqrt() * droplet.water_left * 0.0001;
+                    delta -= erode;
+
+                    droplet.accumulation += erode;
+
+                    let deposit = droplet.accumulation
+                        * (1.0 / (droplet.velocity.length() * 1.0 + 1.0))
+                        * 0.0;
+                    droplet.accumulation -= deposit;
+                    droplet.accumulation = droplet.accumulation.max(0.0);
+                    delta += deposit;
+
+                    run.modifications.push(ErosionDropletModification {
+                        position: droplet.position.clone().normalize(),
+                        delta,
+                    });
+
                     let normal = cubemap_data.get_normal(
                         droplet.position.clone().normalize(),
-                        0.0001,
+                        0.001,
                         sphere_radius,
                         terrain_height,
                     );
 
-                    run.modifications.push(ErosionDropletModification {
-                        position: droplet.position.clone().normalize(),
-                        delta: -0.0001,
-                    });
-
-                    droplet.velocity = (droplet.position.clone().normalize() + normal * 2000.2)
+                    let velocity_surface_vector = ((droplet.position.clone().normalize() + normal)
                         .normalize()
-                        - droplet.position.clone().normalize();
-                    droplet.position += droplet.velocity * 2000.2;
+                        - droplet.position.clone().normalize())
+                        * 2000.0;
+
+                    droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.015);
+
+                    if (droplet.velocity.length() < 0.01) {
+                        break;
+                    }
+
+                    // water droplet terminal velocity is 9 m/2 so lets limit the velocity to this
+                    // droplet.velocity = droplet.velocity.clone().normalize()
+                    //     * asymptotic(droplet.velocity.length() * 0.1, 9.0);
+
+                    droplet.position += droplet.velocity * 300.0;
                     droplet.position = sphere_radius * droplet.position.clone().normalize();
-                    droplet.accumulation += 0.0001;
-                    droplet.water_left -= 0.000001;
+
+                    droplet.water_left -= 0.001;
+
+                    // let mut deposit =
+                    //     droplet.accumulation * (10.0 - droplet.velocity.length()).max(0.0) * 10.1;
+                    // run.modifications.push(ErosionDropletModification {
+                    //     position: droplet.position.clone().normalize(),
+                    //     delta: deposit,
+                    // });
+                    // droplet.accumulation -= deposit;
+                    // droplet.accumulation = droplet.accumulation.max(0.0);
+
                     // if (droplet_num == 0 && iteration == 0) {
-                    //     println!(
-                    //         "p {}, v {}, acc {}, wl: {}",
-                    //         droplet.position,
-                    //         droplet.velocity,
-                    //         droplet.accumulation,
-                    //         droplet.water_left
-                    //     )
+                    //     println!("veldel {velocity_delta}",)
                     // }
                 }
-                run.modifications.push(ErosionDropletModification {
-                    position: droplet.position.clone().normalize(),
-                    delta: droplet.accumulation,
-                });
+                // run.modifications.push(ErosionDropletModification {
+                //     position: droplet.position.clone().normalize(),
+                //     delta: droplet.accumulation,
+                // });
                 run
             })
             .collect();

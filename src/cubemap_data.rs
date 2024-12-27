@@ -1,6 +1,6 @@
 use crate::math_util::mix;
 use glam::{DMat3, DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::fmt;
 
@@ -225,6 +225,21 @@ impl CubeMapDataLayer {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
         let uv = (uv01 * (self.res as f64));
+        // let mut pixel = uv.floor();
+        // if (pixel.x < 0.0) {
+        //     pixel.x = 0.0;
+        // }
+        // if (pixel.x >= (self.res - 1) as f64) {
+        //     pixel.x = (self.res - 1) as f64;
+        // }
+        // if (pixel.y < 0.0) {
+        //     pixel.y = 0.0;
+        // }
+        // if (pixel.y >= (self.res - 1) as f64) {
+        //     pixel.y = (self.res - 1) as f64;
+        // }
+        // return self.get_pixel(&face, pixel.x as usize, pixel.y as usize);
+
         let mut pixel1 = uv.floor();
         let mut pixel2 = uv.ceil();
         let pixel_fract = uv.fract_gl();
@@ -253,7 +268,8 @@ impl CubeMapDataLayer {
         sphere_radius: f64,
         terrain_height: f64,
     ) -> DVec3 {
-        let mut tangdir = DMat3::from_axis_angle(DVec3::new(0.0, 1.0, 0.0), PI) * dir;
+        let mut tangdir =
+            DMat3::from_axis_angle(DVec3::new(0.0, 1.0, 0.00001).normalize(), PI) * dir;
         let bitangdir = tangdir.cross(dir).normalize();
         tangdir = dir.cross(bitangdir).normalize();
         let normrotmat1 = DMat3::from_axis_angle(tangdir, dxrange);

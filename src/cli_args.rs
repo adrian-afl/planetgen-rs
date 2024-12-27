@@ -10,7 +10,7 @@ pub struct CLIArgs {
     #[arg(short, long, default_value_t = 6360000.0)]
     pub radius: f64,
 
-    #[arg(short = None, long = "terrain-height", default_value_t = 100000.0)]
+    #[arg(short = None, long = "terrain-height", default_value_t = 1000000.0)]
     pub terrain_height: f64,
 
     #[arg(short = None, long = "subdivide-initial", default_value_t = 3)]
@@ -25,7 +25,7 @@ pub struct CLIArgs {
     #[arg(short = None, long = "subdivide-level-3", default_value_t = 4)]
     pub subdivide_level3: u16,
 
-    #[arg(short = None, long = "cube-map-res", default_value_t = 256)]
+    #[arg(short = None, long = "cube-map-res", default_value_t = 512)]
     pub cube_map_resolution: u16,
 
     #[arg(short = None, long = "fbm-scale", default_value_t = 1.0)]
@@ -43,9 +43,9 @@ pub struct CLIArgs {
     #[arg(short = None, long = "fbm-final-pow", default_value_t = 2.0)]
     pub fbm_final_pow: f64,
 
-    #[arg(short = None, long = "erosion-iters", default_value_t = 16)]
+    #[arg(short = None, long = "erosion-iters", default_value_t = 128)]
     pub erosion_iterations: u16,
 
-    #[arg(short = None, long = "erosion-droplets", default_value_t = 64)]
+    #[arg(short = None, long = "erosion-droplets", default_value_t = 1024)]
     pub erosion_droplets_count: u16,
 }

@@ -17,6 +17,15 @@ const cubetex = new THREE.CubeTextureLoader().load([
     'face_NZ.png'
 ]);
 
+const cubenormaltex = new THREE.CubeTextureLoader().load([
+    'normal_face_PX.png',
+    'normal_face_NX.png',
+    'normal_face_PY.png',
+    'normal_face_NY.png',
+    'normal_face_PZ.png',
+    'normal_face_NZ.png'
+]);
+
 scene.background = cubetex;
 
 //scene.background = new THREE.Color("white");
@@ -26,7 +35,8 @@ camera.position.set(0, 15, 15);
 const controls = new OrbitControls(camera, renderer.domElement);
 
 const uniforms = {
-    cubeMap: {type: "samplerCube", value: cubetex}
+    cubeMap: {type: "samplerCube", value: cubetex},
+    cubeNormalMap: {type: "samplerCube", value: cubenormaltex}
 };
 
 const material = new THREE.ShaderMaterial({
@@ -34,6 +44,7 @@ const material = new THREE.ShaderMaterial({
     vertexShader: `
            uniform float time;
         uniform samplerCube cubeMap;
+        uniform samplerCube cubeNormalMap;
         out vec3 norm;
         mat3 axisAngleMat3(vec3 axis, float angle)
         {
@@ -60,7 +71,8 @@ const material = new THREE.ShaderMaterial({
             return normalize(cross(normalize(p3 - p1), normalize(p2 - p1)));
         }
         void main(){
-            norm = getNormal(0.001, normal);
+            //norm = getNormal(0.001, normal);
+            norm = texture(cubeNormalMap, normal).rgb;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * texture(cubeMap, normal).r * 0.1, 1.0 );
         }
         `,
