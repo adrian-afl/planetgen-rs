@@ -65,7 +65,7 @@ pub fn erosion_run(
                     let mut delta = 0.0;
 
                     let erode_deposit_coef = (1.0
-                        / (droplet.velocity.length() * droplet.velocity.length() * 100.0 + 1.0));
+                        / (droplet.velocity.length() * droplet.velocity.length() * 1000.0 + 1.0));
 
                     let erode: f64 = (1.0 - erode_deposit_coef)
                         * 100.0
@@ -73,12 +73,12 @@ pub fn erosion_run(
                         * droplet.water_left;
                     delta -= erode;
 
-                    // droplet.accumulation += erode;
-                    //
-                    // let deposit = (droplet.accumulation * erode_deposit_coef * 0.1).min(0.0001);
-                    // droplet.accumulation -= deposit;
-                    // droplet.accumulation = droplet.accumulation.max(0.0);
-                    // delta += deposit;
+                    droplet.accumulation += erode;
+
+                    let deposit = (droplet.accumulation * erode_deposit_coef) * 10.0;
+                    droplet.accumulation -= deposit;
+                    droplet.accumulation = droplet.accumulation.max(0.0);
+                    delta += deposit;
 
                     run.modifications.push(ErosionDropletModification {
                         position: droplet.position.clone().normalize(),
@@ -92,7 +92,7 @@ pub fn erosion_run(
 
                     let velocity_surface_vector = surface_velocity_vector * 100.0;
 
-                    droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.015);
+                    droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.05);
 
                     if (droplet.velocity.length() < 0.001) {
                         break;
@@ -105,7 +105,7 @@ pub fn erosion_run(
                     droplet.position += droplet.velocity * 200.0;
                     droplet.position = sphere_radius * droplet.position.clone().normalize();
 
-                    droplet.water_left -= 0.005;
+                    droplet.water_left -= 0.01;
 
                     // let mut deposit =
                     //     droplet.accumulation * (10.0 - droplet.velocity.length()).max(0.0) * 10.1;

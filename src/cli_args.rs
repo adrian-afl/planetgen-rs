@@ -46,6 +46,6 @@ pub struct CLIArgs {
     #[arg(short = None, long = "erosion-iters", default_value_t = 1000)]
     pub erosion_iterations: u16,
 
-    #[arg(short = None, long = "erosion-droplets", default_value_t = 20000)]
+    #[arg(short = None, long = "erosion-droplets", default_value_t = 10000)]
     pub erosion_droplets_count: u16,
 }
