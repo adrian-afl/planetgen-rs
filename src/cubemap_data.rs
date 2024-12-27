@@ -261,13 +261,7 @@ impl CubeMapDataLayer {
         mix(d1, d2, pixel_fract.y)
     }
 
-    pub fn get_normal(
-        &self,
-        dir: DVec3,
-        dxrange: f64,
-        sphere_radius: f64,
-        terrain_height: f64,
-    ) -> DVec3 {
+    pub fn get_normal(&self, dir: DVec3, dxrange: f64) -> DVec3 {
         let dir = dir.normalize();
 
         let tangdir = if dir.y.abs() < 0.999 {
@@ -282,10 +276,10 @@ impl CubeMapDataLayer {
         let dir3 = (dir - tangdir * dxrange).normalize();
         let dir4 = (dir - bitangdir * dxrange).normalize();
 
-        let p1 = dir1 * (sphere_radius + self.get(dir1) * terrain_height);
-        let p2 = dir2 * (sphere_radius + self.get(dir2) * terrain_height);
-        let p3 = dir3 * (sphere_radius + self.get(dir3) * terrain_height);
-        let p4 = dir4 * (sphere_radius + self.get(dir4) * terrain_height);
+        let p1 = dir1 * self.get(dir1);
+        let p2 = dir2 * self.get(dir2);
+        let p3 = dir3 * self.get(dir3);
+        let p4 = dir4 * self.get(dir4);
 
         let n1 = (p2 - p1).cross(p3 - p1);
         let n2 = (p3 - p1).cross(p4 - p1);

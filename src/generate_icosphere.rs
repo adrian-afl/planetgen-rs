@@ -43,21 +43,15 @@ fn normalize_triangle(tri: &Triangle) -> Triangle {
     [tri[0].normalize(), tri[1].normalize(), tri[2].normalize()]
 }
 
-fn scale_vector(v: DVec3, input: &CubeMapDataLayer, scale: f64, terrain_scale: f64) -> DVec3 {
-    let value = input.get(v);
-    v * (scale + terrain_scale * value)
+fn scale_vector(v: DVec3, input: &CubeMapDataLayer) -> DVec3 {
+    v * input.get(v)
 }
 
-fn scale_triangle(
-    tri: &Triangle,
-    input: &CubeMapDataLayer,
-    scale: f64,
-    terrain_scale: f64,
-) -> Triangle {
+fn scale_triangle(tri: &Triangle, input: &CubeMapDataLayer) -> Triangle {
     [
-        scale_vector(tri[0], input, scale, terrain_scale),
-        scale_vector(tri[1], input, scale, terrain_scale),
-        scale_vector(tri[2], input, scale, terrain_scale),
+        scale_vector(tri[0], input),
+        scale_vector(tri[1], input),
+        scale_vector(tri[2], input),
     ]
 }
 
@@ -99,43 +93,22 @@ fn write_vector(file: &mut File, v: DVec3, n: DVec3) {
         .expect("Write failed");
 }
 
-fn write_triangle(
-    input: &CubeMapDataLayer,
-    sphere_radius: f64,
-    terrain_height: f64,
-    file: &mut File,
-    tri: &Triangle,
-) {
+fn write_triangle(input: &CubeMapDataLayer, file: &mut File, tri: &Triangle) {
     //let normal = input.get_normal();//get_triangle_normal(tri);
     write_vector(
         file,
         tri[0],
-        input.get_normal(
-            tri[0].clone().normalize(),
-            0.01,
-            sphere_radius,
-            terrain_height,
-        ),
+        input.get_normal(tri[0].clone().normalize(), 0.01),
     );
     write_vector(
         file,
         tri[1],
-        input.get_normal(
-            tri[1].clone().normalize(),
-            0.01,
-            sphere_radius,
-            terrain_height,
-        ),
+        input.get_normal(tri[1].clone().normalize(), 0.01),
     );
     write_vector(
         file,
         tri[2],
-        input.get_normal(
-            tri[2].clone().normalize(),
-            0.01,
-            sphere_radius,
-            terrain_height,
-        ),
+        input.get_normal(tri[2].clone().normalize(), 0.01),
     );
 }
 
@@ -143,7 +116,6 @@ pub fn generate_icosphere_raw(
     outputDir: &str,
     input: &CubeMapDataLayer,
     sphere_radius: f64,
-    terrain_scale: f64,
     subdivide_initial: u16,
     subdivide_level1: u16,
     subdivide_level2: u16,
@@ -220,23 +192,23 @@ pub fn generate_icosphere_raw(
 
                 level1.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
+                    let t = scale_triangle(&t, input);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&input, sphere_radius, terrain_scale, &mut level1file, &t);
+                    write_triangle(&input, &mut level1file, &t);
                 });
 
                 level2.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
+                    let t = scale_triangle(&t, input);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&input, sphere_radius, terrain_scale, &mut level2file, &t);
+                    write_triangle(&input, &mut level2file, &t);
                 });
 
                 level3.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
-                    let t = scale_triangle(&t, input, sphere_radius, terrain_scale);
+                    let t = scale_triangle(&t, input);
                     let t = translate_triangle(&t, -part_center);
-                    write_triangle(&input, sphere_radius, terrain_scale, &mut level3file, &t);
+                    write_triangle(&input, &mut level3file, &t);
                 });
                 level1file.flush().unwrap();
                 level2file.flush().unwrap();

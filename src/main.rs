@@ -63,7 +63,12 @@ fn main() {
                         args.fbm_iteration_weight_coef,
                     )
                 };
-                cube_map.set_pixel(face, x as usize, y as usize, value.powf(args.fbm_final_pow));
+                cube_map.set_pixel(
+                    face,
+                    x as usize,
+                    y as usize,
+                    args.radius + args.terrain_height * value.powf(args.fbm_final_pow),
+                );
             });
         });
     });
@@ -112,7 +117,7 @@ fn main() {
         );
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
-            let value = cube_map.get_normal(dir, 0.001, args.radius, args.terrain_height);
+            let value = cube_map.get_normal(dir, 0.001);
 
             *pixel = image::Rgb([
                 (value.x * 255.0) as u8,
@@ -136,7 +141,6 @@ fn main() {
     //     args.out_dir.as_str(),
     //     &cube_map,
     //     args.radius,
-    //     args.terrain_height,
     //     args.subdivide_initial,
     //     args.subdivide_level1,
     //     args.subdivide_level2,
