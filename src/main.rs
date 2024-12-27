@@ -8,6 +8,7 @@ mod noise;
 mod random;
 
 use crate::cubemap_data::{CubeMapDataLayer, CubeMapFace};
+use crate::erosion::erosion_run;
 use crate::generate_icosphere::generate_icosphere_raw;
 use crate::noise::fbm;
 use crate::random::random_1d_to_array;
@@ -64,10 +65,12 @@ fn main() {
                 let value = fbm(dir * 1.0, 5, 3.0, 0.6);
                 // let value = dir.dot(DVec3::new(1.0, 1.0, 1.0).normalize()) * 0.5 + 0.5;
 
-                cube_map.set_pixel(face, x, y, value);
+                cube_map.set_pixel(face, x, y, (value * 1.2).powf((4.0)));
             });
         });
     });
+
+    erosion_run(&mut cube_map, 400, 512);
 
     faces.iter().for_each(|face| {
         println!("Saving face {}, res: {}", face, RES);
@@ -82,9 +85,9 @@ fn main() {
             .save(format!("cubemap_visualizer/public/face_{}.png", face))
             .unwrap();
     });
-
-    println!("Saving icosphere");
-    generate_icosphere_raw("icosphere", &cube_map, 6378000.0, 100000.0);
+    //
+    // println!("Saving icosphere");
+    // generate_icosphere_raw("icosphere", &cube_map, 6360000.0, 100000.0);
 
     let duration = start.elapsed();
     println!("Time elapsed in expensive_function() is: {:?}", duration);

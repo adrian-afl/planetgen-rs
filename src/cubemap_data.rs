@@ -1,5 +1,5 @@
 use crate::math_util::mix;
-use glam::{DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
+use glam::{DMat3, DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
 use std::cmp::min;
 use std::f64::consts::PI;
 use std::fmt;
@@ -168,20 +168,38 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
     }
 
     // TODO if this is to be used, it needs to also do bilinear filtering
-    // fn set(&mut self, coord: DVec3, value: f64) {
-    //     let face = get_face(coord);
-    //     let uv01 = project_direction(&face, coord).unwrap();
-    //     let uv = (uv01 * (RES as f64)).floor();
-    //     let index = (uv.y * (RES as f64) + uv.x) as usize;
-    //     match face {
-    //         CubeMapFace::PX => self.px[index] = value,
-    //         CubeMapFace::PY => self.py[index] = value,
-    //         CubeMapFace::PZ => self.pz[index] = value,
-    //         CubeMapFace::NX => self.nx[index] = value,
-    //         CubeMapFace::NY => self.nx[index] = value,
-    //         CubeMapFace::NZ => self.nx[index] = value,
-    //     }
-    // }
+    // maybe later
+    pub fn set(&mut self, coord: DVec3, value: f64) {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (RES as f64)).floor();
+        let index = (uv.y * (RES as f64) + uv.x) as usize;
+        match face {
+            CubeMapFace::PX => self.px[index] = value,
+            CubeMapFace::PY => self.py[index] = value,
+            CubeMapFace::PZ => self.pz[index] = value,
+            CubeMapFace::NX => self.nx[index] = value,
+            CubeMapFace::NY => self.ny[index] = value,
+            CubeMapFace::NZ => self.nz[index] = value,
+        }
+    }
+
+    // TODO if this is to be used, it needs to also do bilinear filtering
+    // maybe later
+    pub fn add(&mut self, coord: DVec3, value: f64) {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (RES as f64)).floor();
+        let index = (uv.y * (RES as f64) + uv.x) as usize;
+        match face {
+            CubeMapFace::PX => self.px[index] += value,
+            CubeMapFace::PY => self.py[index] += value,
+            CubeMapFace::PZ => self.pz[index] += value,
+            CubeMapFace::NX => self.nx[index] += value,
+            CubeMapFace::NY => self.ny[index] += value,
+            CubeMapFace::NZ => self.nz[index] += value,
+        }
+    }
 
     pub fn get_pixel(&self, face: &CubeMapFace, x: usize, y: usize) -> f64 {
         let index = min(y * (RES) + x, RES * RES - 1);
@@ -218,6 +236,22 @@ impl<const RES: usize> CubeMapDataLayer<RES> {
         let d2 = mix(value12, value22, pixel_fract.x);
 
         mix(d1, d2, pixel_fract.y)
+    }
+
+    pub fn get_normal(&self, dir: DVec3, dxrange: f64) -> DVec3 {
+        let mut tangdir = DMat3::from_axis_angle(DVec3::new(0.0, 1.0, 0.0), PI) * dir;
+        let bitangdir = tangdir.cross(dir).normalize();
+        tangdir = dir.cross(bitangdir).normalize();
+        let normrotmat1 = DMat3::from_axis_angle(tangdir, dxrange);
+        let normrotmat2 = DMat3::from_axis_angle(bitangdir, dxrange);
+        let dir2 = normrotmat1 * dir;
+        let dir3 = normrotmat2 * dir;
+        let p1 = dir * (self.get(dir));
+        let p2 = dir2 * (self.get(dir2));
+        let p3 = dir3 * (self.get(dir3));
+        let a = (p3 - p1).normalize();
+        let b = (p2 - p1).normalize();
+        return a.cross(b).normalize();
     }
 }
 
