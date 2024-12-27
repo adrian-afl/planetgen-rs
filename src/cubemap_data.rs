@@ -268,20 +268,29 @@ impl CubeMapDataLayer {
         sphere_radius: f64,
         terrain_height: f64,
     ) -> DVec3 {
-        let mut tangdir =
-            DMat3::from_axis_angle(DVec3::new(0.0, 1.0, 0.00001).normalize(), PI) * dir;
-        let bitangdir = tangdir.cross(dir).normalize();
-        tangdir = dir.cross(bitangdir).normalize();
-        let normrotmat1 = DMat3::from_axis_angle(tangdir, dxrange);
-        let normrotmat2 = DMat3::from_axis_angle(bitangdir, dxrange);
-        let dir2 = normrotmat1 * dir;
-        let dir3 = normrotmat2 * dir;
-        let p1 = dir * (sphere_radius + self.get(dir) * terrain_height);
+        let dir = dir.normalize();
+
+        let tangdir = if dir.y.abs() < 0.999 {
+            DVec3::new(0.0, 1.0, 0.0).cross(dir).normalize()
+        } else {
+            DVec3::new(1.0, 0.0, 0.0).cross(dir).normalize()
+        };
+        let bitangdir = dir.cross(tangdir).normalize();
+
+        let dir1 = (dir + tangdir * dxrange).normalize();
+        let dir2 = (dir + bitangdir * dxrange).normalize();
+        let dir3 = (dir - tangdir * dxrange).normalize();
+        let dir4 = (dir - bitangdir * dxrange).normalize();
+
+        let p1 = dir1 * (sphere_radius + self.get(dir1) * terrain_height);
         let p2 = dir2 * (sphere_radius + self.get(dir2) * terrain_height);
         let p3 = dir3 * (sphere_radius + self.get(dir3) * terrain_height);
-        let a = (p3 - p1).normalize();
-        let b = (p2 - p1).normalize();
-        a.cross(b).normalize()
+        let p4 = dir4 * (sphere_radius + self.get(dir4) * terrain_height);
+
+        let n1 = (p2 - p1).cross(p3 - p1);
+        let n2 = (p3 - p1).cross(p4 - p1);
+
+        (n1 + n2).normalize()
     }
 }
 
