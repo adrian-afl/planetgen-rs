@@ -64,39 +64,38 @@ pub fn erosion_run(
                 while droplet.water_left > 0.0 {
                     let mut delta = 0.0;
 
-                    let erode =
-                        droplet.velocity.length().sqrt().sqrt() * droplet.water_left * 0.0001;
+                    let erode_deposit_coef = (1.0
+                        / (droplet.velocity.length() * droplet.velocity.length() * 1000.0 + 1.0));
+
+                    let erode: f64 = (1.0 - erode_deposit_coef) * 0.000004;
                     delta -= erode;
 
-                    droplet.accumulation += erode;
-
-                    let deposit = droplet.accumulation
-                        * (1.0 / (droplet.velocity.length() * 1.0 + 1.0))
-                        * 0.0;
-                    droplet.accumulation -= deposit;
-                    droplet.accumulation = droplet.accumulation.max(0.0);
-                    delta += deposit;
+                    // droplet.accumulation += erode;
+                    //
+                    // let deposit = (droplet.accumulation * erode_deposit_coef * 0.1).min(0.0001);
+                    // droplet.accumulation -= deposit;
+                    // droplet.accumulation = droplet.accumulation.max(0.0);
+                    // delta += deposit;
 
                     run.modifications.push(ErosionDropletModification {
                         position: droplet.position.clone().normalize(),
                         delta,
                     });
 
-                    let normal = cubemap_data.get_normal(
+                    let smooth_normal = droplet.position.clone().normalize();
+                    let real_normal = cubemap_data.get_normal(
                         droplet.position.clone().normalize(),
-                        0.001,
+                        0.01,
                         sphere_radius,
                         terrain_height,
                     );
+                    let surface_velocity_vector = real_normal - smooth_normal;
 
-                    let velocity_surface_vector = ((droplet.position.clone().normalize() + normal)
-                        .normalize()
-                        - droplet.position.clone().normalize())
-                        * 2000.0;
+                    let velocity_surface_vector = surface_velocity_vector * 100.0;
 
                     droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.015);
 
-                    if (droplet.velocity.length() < 0.01) {
+                    if (droplet.velocity.length() < 0.001) {
                         break;
                     }
 
@@ -104,7 +103,7 @@ pub fn erosion_run(
                     // droplet.velocity = droplet.velocity.clone().normalize()
                     //     * asymptotic(droplet.velocity.length() * 0.1, 9.0);
 
-                    droplet.position += droplet.velocity * 300.0;
+                    droplet.position += droplet.velocity * 200.0;
                     droplet.position = sphere_radius * droplet.position.clone().normalize();
 
                     droplet.water_left -= 0.001;
@@ -119,7 +118,7 @@ pub fn erosion_run(
                     // droplet.accumulation = droplet.accumulation.max(0.0);
 
                     // if (droplet_num == 0 && iteration == 0) {
-                    //     println!("veldel {velocity_delta}",)
+                    //     println!("erode_deposit_coef {erode_deposit_coef}",)
                     // }
                 }
                 // run.modifications.push(ErosionDropletModification {
