@@ -1,5 +1,6 @@
 use crate::math_util::mix;
 use glam::{DMat3, DMat4, DVec2, DVec3, DVec4, Mat4, Vec4Swizzles};
+use std::cell::RefCell;
 use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::fmt;
@@ -16,6 +17,7 @@ pub struct CubeMapDataLayer {
     nz: Vec<f64>,
 }
 
+#[derive(Clone)]
 pub enum CubeMapFace {
     PX,
     PY,
@@ -160,6 +162,17 @@ impl CubeMapDataLayer {
             CubeMapFace::NX => self.nx[index] = value,
             CubeMapFace::NY => self.ny[index] = value,
             CubeMapFace::NZ => self.nz[index] = value,
+        }
+    }
+
+    pub fn get_mutable_face(&self, face: &CubeMapFace) -> RefCell<Vec<f64>> {
+        match face {
+            CubeMapFace::PX => RefCell::new(self.px.clone()),
+            CubeMapFace::PY => RefCell::new(self.py.clone()),
+            CubeMapFace::PZ => RefCell::new(self.pz.clone()),
+            CubeMapFace::NX => RefCell::new(self.nx.clone()),
+            CubeMapFace::NY => RefCell::new(self.ny.clone()),
+            CubeMapFace::NZ => RefCell::new(self.nz.clone()),
         }
     }
 

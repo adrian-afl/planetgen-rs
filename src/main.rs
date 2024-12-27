@@ -45,14 +45,15 @@ fn main() {
 
     let start = Instant::now();
 
-    faces.iter().for_each(|face| {
+    faces.clone().into_par_iter().for_each(|face| {
         println!(
             "Generating face {}, res: {}",
             face, args.cube_map_resolution
         );
+        let mut face_data = cube_map.get_mutable_face(&face);
         (0..args.cube_map_resolution).into_iter().for_each(|y| {
             (0..args.cube_map_resolution).into_iter().for_each(|x| {
-                let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
+                let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
                 let value = if args.fbm_iterations == 0 {
                     0.0
                 } else {
@@ -63,12 +64,9 @@ fn main() {
                         args.fbm_iteration_weight_coef,
                     )
                 };
-                cube_map.set_pixel(
-                    face,
-                    x as usize,
-                    y as usize,
-                    args.radius + args.terrain_height * value.powf(args.fbm_final_pow),
-                );
+                let index = (y as usize) * (args.cube_map_resolution as usize) + (x as usize);
+                face_data.get_mut()[index] =
+                    args.radius + args.terrain_height * value.powf(args.fbm_final_pow);
             });
         });
     });
