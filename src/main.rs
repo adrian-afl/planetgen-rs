@@ -45,15 +45,26 @@ fn main() {
 
     let start = Instant::now();
 
-    faces.clone().into_par_iter().for_each(|face| {
+    let mutablefaces = [
+        (CubeMapFace::PX, cube_map.get_mutable_face(&CubeMapFace::PX)),
+        (CubeMapFace::PY, cube_map.get_mutable_face(&CubeMapFace::PY)),
+        (CubeMapFace::PZ, cube_map.get_mutable_face(&CubeMapFace::PZ)),
+        (CubeMapFace::NX, cube_map.get_mutable_face(&CubeMapFace::NX)),
+        (CubeMapFace::NY, cube_map.get_mutable_face(&CubeMapFace::NY)),
+        (CubeMapFace::NZ, cube_map.get_mutable_face(&CubeMapFace::NZ)),
+    ];
+
+    mutablefaces.into_par_iter().for_each(|face| {
         println!(
             "Generating face {}, res: {}",
-            face, args.cube_map_resolution
+            face.0, args.cube_map_resolution
         );
-        let mut face_data = cube_map.get_mutable_face(&face);
-        (0..args.cube_map_resolution).into_iter().for_each(|y| {
-            (0..args.cube_map_resolution).into_iter().for_each(|x| {
-                let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
+        let mut face_data = face.1.lock().unwrap();
+        // (0..args.cube_map_resolution).into_iter().for_each(|y| {
+        //     (0..args.cube_map_resolution).into_iter().for_each(|x| {
+        for y in (0..args.cube_map_resolution) {
+            for x in (0..args.cube_map_resolution) {
+                let dir = cube_map.pixel_coords_to_direction(&face.0, x as usize, y as usize);
                 let value = if args.fbm_iterations == 0 {
                     0.0
                 } else {
@@ -65,10 +76,10 @@ fn main() {
                     )
                 };
                 let index = (y as usize) * (args.cube_map_resolution as usize) + (x as usize);
-                face_data.get_mut()[index] =
+                face_data[index] =
                     args.radius + args.terrain_height * value.powf(args.fbm_final_pow);
-            });
-        });
+            }
+        }
     });
 
     if args.erosion_iterations > 0 {

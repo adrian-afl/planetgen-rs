@@ -4,17 +4,17 @@ use std::cell::RefCell;
 use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::fmt;
+use std::sync::{Arc, Mutex};
 
 pub struct CubeMapDataLayer {
     res: u16,
 
-    px: Vec<f64>,
-    py: Vec<f64>,
-    pz: Vec<f64>,
-
-    nx: Vec<f64>,
-    ny: Vec<f64>,
-    nz: Vec<f64>,
+    px: Arc<Mutex<Vec<f64>>>,
+    py: Arc<Mutex<Vec<f64>>>,
+    pz: Arc<Mutex<Vec<f64>>>,
+    nx: Arc<Mutex<Vec<f64>>>,
+    ny: Arc<Mutex<Vec<f64>>>,
+    nz: Arc<Mutex<Vec<f64>>>,
 }
 
 #[derive(Clone)]
@@ -139,13 +139,12 @@ impl CubeMapDataLayer {
         CubeMapDataLayer {
             res: res,
 
-            px: vec![0.0; res_usize * res_usize],
-            py: vec![0.0; res_usize * res_usize],
-            pz: vec![0.0; res_usize * res_usize],
-
-            nx: vec![0.0; res_usize * res_usize],
-            ny: vec![0.0; res_usize * res_usize],
-            nz: vec![0.0; res_usize * res_usize],
+            px: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            py: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            pz: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            nx: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            ny: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            nz: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
         }
     }
 
@@ -153,26 +152,26 @@ impl CubeMapDataLayer {
         (x as u16) >= self.res || (y as u16) >= self.res || x < 0 || y < 0
     }
 
-    pub fn set_pixel(&mut self, face: &CubeMapFace, x: usize, y: usize, value: f64) {
+    pub fn set_pixel(&self, face: &CubeMapFace, x: usize, y: usize, value: f64) {
         let index = y * (self.res as usize) + x;
         match face {
-            CubeMapFace::PX => self.px[index] = value,
-            CubeMapFace::PY => self.py[index] = value,
-            CubeMapFace::PZ => self.pz[index] = value,
-            CubeMapFace::NX => self.nx[index] = value,
-            CubeMapFace::NY => self.ny[index] = value,
-            CubeMapFace::NZ => self.nz[index] = value,
+            CubeMapFace::PX => self.px.lock().unwrap()[index] = value,
+            CubeMapFace::PY => self.py.lock().unwrap()[index] = value,
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index] = value,
+            CubeMapFace::NX => self.nx.lock().unwrap()[index] = value,
+            CubeMapFace::NY => self.ny.lock().unwrap()[index] = value,
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index] = value,
         }
     }
 
-    pub fn get_mutable_face(&self, face: &CubeMapFace) -> RefCell<Vec<f64>> {
+    pub fn get_mutable_face(&self, face: &CubeMapFace) -> Arc<Mutex<Vec<f64>>> {
         match face {
-            CubeMapFace::PX => RefCell::new(self.px.clone()),
-            CubeMapFace::PY => RefCell::new(self.py.clone()),
-            CubeMapFace::PZ => RefCell::new(self.pz.clone()),
-            CubeMapFace::NX => RefCell::new(self.nx.clone()),
-            CubeMapFace::NY => RefCell::new(self.ny.clone()),
-            CubeMapFace::NZ => RefCell::new(self.nz.clone()),
+            CubeMapFace::PX => self.px.clone(),
+            CubeMapFace::PY => self.py.clone(),
+            CubeMapFace::PZ => self.pz.clone(),
+            CubeMapFace::NX => self.nx.clone(),
+            CubeMapFace::NY => self.ny.clone(),
+            CubeMapFace::NZ => self.nz.clone(),
         }
     }
 
@@ -187,35 +186,35 @@ impl CubeMapDataLayer {
 
     // TODO if this is to be used, it needs to also do bilinear filtering
     // maybe later
-    pub fn set(&mut self, coord: DVec3, value: f64) {
+    pub fn set(&self, coord: DVec3, value: f64) {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
         let uv = (uv01 * (self.res as f64)).floor();
         let index = (uv.y * (self.res as f64) + uv.x) as usize;
         match face {
-            CubeMapFace::PX => self.px[index] = value,
-            CubeMapFace::PY => self.py[index] = value,
-            CubeMapFace::PZ => self.pz[index] = value,
-            CubeMapFace::NX => self.nx[index] = value,
-            CubeMapFace::NY => self.ny[index] = value,
-            CubeMapFace::NZ => self.nz[index] = value,
+            CubeMapFace::PX => self.px.lock().unwrap()[index] = value,
+            CubeMapFace::PY => self.py.lock().unwrap()[index] = value,
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index] = value,
+            CubeMapFace::NX => self.nx.lock().unwrap()[index] = value,
+            CubeMapFace::NY => self.ny.lock().unwrap()[index] = value,
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index] = value,
         }
     }
 
     // TODO if this is to be used, it needs to also do bilinear filtering
     // maybe later
-    pub fn add(&mut self, coord: DVec3, value: f64) {
+    pub fn add(&self, coord: DVec3, value: f64) {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
         let uv = (uv01 * (self.res as f64)).floor();
         let index = (uv.y * (self.res as f64) + uv.x) as usize;
         match face {
-            CubeMapFace::PX => self.px[index] += value,
-            CubeMapFace::PY => self.py[index] += value,
-            CubeMapFace::PZ => self.pz[index] += value,
-            CubeMapFace::NX => self.nx[index] += value,
-            CubeMapFace::NY => self.ny[index] += value,
-            CubeMapFace::NZ => self.nz[index] += value,
+            CubeMapFace::PX => self.px.lock().unwrap()[index] += value,
+            CubeMapFace::PY => self.py.lock().unwrap()[index] += value,
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index] += value,
+            CubeMapFace::NX => self.nx.lock().unwrap()[index] += value,
+            CubeMapFace::NY => self.ny.lock().unwrap()[index] += value,
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index] += value,
         }
     }
 
@@ -225,12 +224,12 @@ impl CubeMapDataLayer {
             (self.res as usize) * (self.res as usize) - 1,
         );
         match face {
-            CubeMapFace::PX => self.px[index],
-            CubeMapFace::PY => self.py[index],
-            CubeMapFace::PZ => self.pz[index],
-            CubeMapFace::NX => self.nx[index],
-            CubeMapFace::NY => self.ny[index],
-            CubeMapFace::NZ => self.nz[index],
+            CubeMapFace::PX => self.px.lock().unwrap()[index],
+            CubeMapFace::PY => self.py.lock().unwrap()[index],
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index],
+            CubeMapFace::NX => self.nx.lock().unwrap()[index],
+            CubeMapFace::NY => self.ny.lock().unwrap()[index],
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index],
         }
     }
 
