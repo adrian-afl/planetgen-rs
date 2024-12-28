@@ -87,12 +87,10 @@ fn main() {
             &mut cube_map,
             args.erosion_iterations,
             args.erosion_droplets_count,
-            args.radius,
-            args.terrain_height,
         );
     }
 
-    faces.iter().for_each(|face| {
+    faces.clone().into_par_iter().for_each(|face| {
         println!(
             "Saving height face {}, res: {}",
             face, args.cube_map_resolution
@@ -102,7 +100,7 @@ fn main() {
             args.cube_map_resolution as u32,
         );
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-            let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
+            let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
             let value = cube_map.get(dir);
 
             *pixel = image::Luma([(value * 255.0) as u8]);
@@ -115,7 +113,7 @@ fn main() {
             .unwrap();
     });
 
-    faces.iter().for_each(|face| {
+    faces.clone().into_par_iter().for_each(|face| {
         println!(
             "Saving normal face {}, res: {}",
             face, args.cube_map_resolution
@@ -125,8 +123,8 @@ fn main() {
             args.cube_map_resolution as u32,
         );
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-            let dir = cube_map.pixel_coords_to_direction(face, x as usize, y as usize);
-            let value = cube_map.get_normal(dir, 0.001);
+            let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
+            let value = cube_map.get_normal(dir, cube_map.get_pixel_distance_for_dir(dir));
 
             *pixel = image::Rgb([
                 (value.x * 255.0) as u8,

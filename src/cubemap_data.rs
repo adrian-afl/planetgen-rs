@@ -184,6 +184,36 @@ impl CubeMapDataLayer {
         (transformed.xyz() / transformed.w).normalize()
     }
 
+    pub fn get_smallest_pixel_distance(&self) -> f64 {
+        let a = self.pixel_coords_to_direction(
+            &CubeMapFace::PX,
+            self.res as usize / 2,
+            self.res as usize / 2,
+        );
+        let b = self.pixel_coords_to_direction(
+            &CubeMapFace::PX,
+            self.res as usize / 2 + 1,
+            self.res as usize / 2 + 1,
+        );
+        a.distance(b)
+    }
+
+    pub fn get_biggest_pixel_distance(&self) -> f64 {
+        let a = self.pixel_coords_to_direction(&CubeMapFace::PX, 0, 0);
+        let b = self.pixel_coords_to_direction(&CubeMapFace::PX, 1, 1);
+        a.distance(b)
+    }
+
+    pub fn get_pixel_distance_for_dir(&self, coord: DVec3) -> f64 {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (self.res as f64)).floor();
+        let a = self.pixel_coords_to_direction(&CubeMapFace::PX, uv.x as usize, uv.y as usize);
+        let b =
+            self.pixel_coords_to_direction(&CubeMapFace::PX, uv.x as usize + 1, uv.y as usize + 1);
+        a.distance(b)
+    }
+
     // TODO if this is to be used, it needs to also do bilinear filtering
     // maybe later
     pub fn set(&self, coord: DVec3, value: f64) {
