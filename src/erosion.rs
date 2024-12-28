@@ -60,7 +60,7 @@ pub fn erosion_run(
                     (1.0 / (droplet.velocity.length() * droplet.velocity.length() * 1000.0 + 1.0));
 
                 let erode: f64 =
-                    (1.0 - erode_deposit_coef) * 10.0 * droplet.water_left * droplet.water_left;
+                    (1.0 - erode_deposit_coef) * 1000.0 * droplet.water_left * droplet.water_left;
                 delta -= erode;
 
                 droplet.accumulation += erode;
@@ -70,14 +70,12 @@ pub fn erosion_run(
                 droplet.accumulation = droplet.accumulation.max(0.0);
                 delta += deposit;
 
-                cubemap_data.add(droplet.position.clone().normalize(), delta);
-
                 let smooth_normal = droplet.position.clone().normalize();
                 let real_normal =
                     cubemap_data.get_normal(droplet.position.clone().normalize(), 0.01);
                 let surface_velocity_vector = real_normal - smooth_normal;
 
-                let velocity_surface_vector = surface_velocity_vector * 400.0;
+                let velocity_surface_vector = surface_velocity_vector * 200.0;
 
                 droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.05);
 
@@ -106,6 +104,8 @@ pub fn erosion_run(
                 // if (droplet_num == 0 && iteration == 0) {
                 //     println!("erode_deposit_coef {erode_deposit_coef}",)
                 // }
+
+                cubemap_data.add(droplet.position.clone().normalize(), delta);
             }
             // run.modifications.push(ErosionDropletModification {
             //     position: droplet.position.clone().normalize(),
