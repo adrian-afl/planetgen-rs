@@ -3,6 +3,7 @@ mod cli_args;
 mod cubemap_data;
 mod erosion;
 mod generate_icosphere;
+mod json_input;
 mod math_util;
 mod noise;
 mod random;
@@ -11,12 +12,14 @@ use crate::cli_args::CLIArgs;
 use crate::cubemap_data::{CubeMapDataLayer, CubeMapFace};
 use crate::erosion::erosion_run;
 use crate::generate_icosphere::generate_icosphere_raw;
+use crate::json_input::parse_input_data;
 use crate::noise::fbm;
 use crate::random::random_1d_to_array;
 use clap::Parser;
 use glam::{DVec2, DVec3};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::f64::consts::PI;
+use std::fs;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::time::Instant;
@@ -30,7 +33,9 @@ fn polar_to_xyz(xyin: DVec2) -> DVec3 {
 }
 
 fn main() {
-    let args = CLIArgs::parse();
+    let cli_args = CLIArgs::parse();
+    let input_json = fs::read_to_string(cli_args.input).expect("Failed to to read the input file");
+    let input = parse_input_data(&*input_json);
 
     let faces = [
         CubeMapFace::PX,
@@ -41,7 +46,8 @@ fn main() {
         CubeMapFace::NZ,
     ];
 
-    let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(args.cube_map_resolution);
+    let cube_map_res = input.generator_config.cube_map_resolution;
+    let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(cube_map_res);
 
     let start = Instant::now();
 
@@ -55,15 +61,12 @@ fn main() {
     ];
 
     mutablefaces.into_par_iter().for_each(|face| {
-        println!(
-            "Generating face {}, res: {}",
-            face.0, args.cube_map_resolution
-        );
+        println!("Generating face {}, res: {}", face.0, cube_map_res);
         let mut face_data = face.1.lock().unwrap();
-        // (0..args.cube_map_resolution).into_iter().for_each(|y| {
-        //     (0..args.cube_map_resolution).into_iter().for_each(|x| {
-        for y in (0..args.cube_map_resolution) {
-            for x in (0..args.cube_map_resolution) {
+        // (0..cube_map_res).into_iter().for_each(|y| {
+        //     (0..cube_map_res).into_iter().for_each(|x| {
+        for y in (0..cube_map_res) {
+            for x in (0..cube_map_res) {
                 let dir = cube_map.pixel_coords_to_direction(&face.0, x as usize, y as usize);
                 let value = if args.fbm_iterations == 0 {
                     0.0
@@ -75,7 +78,7 @@ fn main() {
                         args.fbm_iteration_weight_coef,
                     )
                 };
-                let index = (y as usize) * (args.cube_map_resolution as usize) + (x as usize);
+                let index = (y as usize) * (cube_map_res as usize) + (x as usize);
                 face_data[index] =
                     args.radius + args.terrain_height * value.powf(args.fbm_final_pow);
             }
@@ -92,14 +95,8 @@ fn main() {
     }
 
     faces.clone().into_par_iter().for_each(|face| {
-        println!(
-            "Saving height face {}, res: {}",
-            face, args.cube_map_resolution
-        );
-        let mut imgbuf = image::ImageBuffer::new(
-            args.cube_map_resolution as u32,
-            args.cube_map_resolution as u32,
-        );
+        println!("Saving height face {}, res: {}", face, cube_map_res);
+        let mut imgbuf = image::ImageBuffer::new(cube_map_res as u32, cube_map_res as u32);
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
             let value = cube_map.get(dir);
@@ -115,14 +112,8 @@ fn main() {
     });
 
     faces.clone().into_par_iter().for_each(|face| {
-        println!(
-            "Saving normal face {}, res: {}",
-            face, args.cube_map_resolution
-        );
-        let mut imgbuf = image::ImageBuffer::new(
-            args.cube_map_resolution as u32,
-            args.cube_map_resolution as u32,
-        );
+        println!("Saving normal face {}, res: {}", face, cube_map_res);
+        let mut imgbuf = image::ImageBuffer::new(cube_map_res as u32, cube_map_res as u32);
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map.pixel_coords_to_direction(&face, x as usize, y as usize);
             let value = cube_map.get_normal(dir, cube_map.get_pixel_distance_for_dir(dir));

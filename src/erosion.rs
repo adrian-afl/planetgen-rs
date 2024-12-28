@@ -48,18 +48,19 @@ fn update_droplet_velocity(
 ) {
     let surface_velocity_vector = surface_normal - smooth_normal;
 
-    let velocity_surface_vector = surface_velocity_vector * 100.0;
+    let velocity_surface_vector = surface_velocity_vector * 50.0;
 
-    droplet.velocity = droplet.velocity.lerp(velocity_surface_vector, 0.15);
+    droplet.velocity += velocity_surface_vector;
+    droplet.velocity *= 0.8;
 }
 
 fn update_droplet_position(droplet: &mut ErosionDroplet, sphere_radius: f64) {
-    droplet.position += droplet.velocity * 100.0;
+    droplet.position += droplet.velocity * 50.0;
     droplet.position = sphere_radius * droplet.position.normalize();
 }
 
 fn evaporate_droplet(droplet: &mut ErosionDroplet) {
-    droplet.water_left -= 0.001;
+    droplet.water_left -= 0.01;
 }
 
 fn get_droplet_erosion(droplet: &mut ErosionDroplet, slope: f64) -> f64 {
@@ -73,8 +74,8 @@ fn get_droplet_erosion(droplet: &mut ErosionDroplet, slope: f64) -> f64 {
 }
 
 fn get_droplet_deposit(droplet: &mut ErosionDroplet, slope: f64) -> f64 {
-    let deposit =
-        0.5 * (1.0 - slope) * (droplet.accumulation) / (droplet.velocity.length() + 1.0).powf(2.0);
+    let deposit = (5.5 * (1.0 - slope) * (droplet.accumulation))
+        / (droplet.velocity.length() + 1.0).powf(2.0);
     droplet.accumulation = (droplet.accumulation - deposit).max(0.0);
 
     deposit
@@ -86,6 +87,9 @@ pub fn erosion_run(
     droplets_per_iteration: u16,
     sphere_radius: f64,
 ) {
+    println!(
+        "Erosion started, {iterations} iterations, {droplets_per_iteration} droplets per iteration"
+    );
     let finished_iters = Arc::new(Mutex::from(0_i32));
     (0..iterations).into_par_iter().for_each(|iteration| {
         for droplet_num in (0..droplets_per_iteration) {
@@ -103,7 +107,7 @@ pub fn erosion_run(
                 let smooth_normal = droplet.position.clone().normalize();
                 let surface_normal = get_surface_normal(&cubemap_data, smooth_normal);
 
-                let slope = 1.0 - surface_normal.dot(smooth_normal).max(0.0).powf(4.0);
+                let slope = 1.0 - surface_normal.dot(smooth_normal).max(0.0).powf(88.0);
 
                 update_droplet_velocity(&mut droplet, smooth_normal, surface_normal);
 
@@ -118,7 +122,7 @@ pub fn erosion_run(
 
                 evaporate_droplet(&mut droplet);
 
-                if (droplet.velocity.length() < 0.001) {
+                if (droplet.velocity.length() < 0.01) {
                     cubemap_data.add(smooth_normal, droplet.accumulation);
                     break;
                 }

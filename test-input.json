@@ -1,0 +1,87 @@
+{
+  "id": "snowball-test",
+  "terrain": {
+    "radius": 6378000,
+    "minHeight": -27000,
+    "maxHeight": 27000,
+    "terrainGeneration": {
+      "fbmScale": 1,
+      "fbmIterations": 20,
+      "fbmFinalPower": 4,
+      "fbmIterationScaleCoefficient": 2,
+      "fbmIterationWeightCoefficient": 0.5,
+      "heightModifiers": [],
+      "colorModifiers": []
+    },
+    "biomeModifier": "latitude",
+    "biomes": [
+      {
+        "id": 0,
+        "name": "snow",
+        "color": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "roughness": 0.2,
+        "erosionStrength": 1,
+        "depositionStrength": 1,
+        "minAltitude": 0,
+        "maxAltitude": 10000,
+        "minModifier": 0,
+        "maxModifier": 78
+      },
+      {
+        "id": 1,
+        "name": "ice",
+        "color": {
+          "x": 0.3,
+          "y": 0.3,
+          "z": 1
+        },
+        "roughness": 0.05,
+        "erosionStrength": 1,
+        "depositionStrength": 1,
+        "minAltitude": 0,
+        "maxAltitude": 10000,
+        "minModifier": 78,
+        "maxModifier": 90
+      },
+      {
+        "id": 2,
+        "name": "bare",
+        "color": {
+          "x": 0.3,
+          "y": 0.3,
+          "z": 0.3
+        },
+        "roughness": 0.05,
+        "erosionStrength": 1,
+        "depositionStrength": 1,
+        "minAltitude": 10000,
+        "maxAltitude": 9999999,
+        "minModifier": 0,
+        "maxModifier": 90
+      }
+    ]
+  },
+  "water": {
+    "color": {
+      "x": 0,
+      "y": 0.3,
+      "z": 0.6
+    },
+    "height": 6398000,
+    "wavesHeight": 2
+  },
+  "generatorConfig": {
+    "outDir": "test-out-dir",
+    "subdivideInitial": 3,
+    "subdivideLevel1": 3,
+    "subdivideLevel2": 3,
+    "subdivideLevel3": 3,
+    "erosionIterations": 100,
+    "erosionDropletsCount": 10000,
+    "cubeMapResolution": 1024
+  }
+}
