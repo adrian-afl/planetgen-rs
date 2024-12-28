@@ -87,6 +87,7 @@ fn main() {
             &mut cube_map,
             args.erosion_iterations,
             args.erosion_droplets_count,
+            args.radius,
         );
     }
 

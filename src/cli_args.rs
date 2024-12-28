@@ -25,7 +25,7 @@ pub struct CLIArgs {
     #[arg(short = None, long = "subdivide-level-3", default_value_t = 4)]
     pub subdivide_level3: u16,
 
-    #[arg(short = None, long = "cube-map-res", default_value_t = 1024)]
+    #[arg(short = None, long = "cube-map-res", default_value_t = 2048)]
     pub cube_map_resolution: u16,
 
     #[arg(short = None, long = "fbm-scale", default_value_t = 4.0)]
@@ -43,9 +43,9 @@ pub struct CLIArgs {
     #[arg(short = None, long = "fbm-final-pow", default_value_t = 4.0)]
     pub fbm_final_pow: f64,
 
-    #[arg(short = None, long = "erosion-iters", default_value_t = 100)]
+    #[arg(short = None, long = "erosion-iters", default_value_t = 500)]
     pub erosion_iterations: u16,
 
-    #[arg(short = None, long = "erosion-droplets", default_value_t = 10000)]
+    #[arg(short = None, long = "erosion-droplets", default_value_t = 20000)]
     pub erosion_droplets_count: u16,
 }
