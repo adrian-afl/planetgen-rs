@@ -26,6 +26,15 @@ const cubenormaltex = new THREE.CubeTextureLoader().load([
     'normal_face_NZ.png'
 ]);
 
+const cubecolortex = new THREE.CubeTextureLoader().load([
+    'biome_face_PX.png',
+    'biome_face_NX.png',
+    'biome_face_PY.png',
+    'biome_face_NY.png',
+    'biome_face_PZ.png',
+    'biome_face_NZ.png'
+]);
+
 scene.background = cubetex;
 
 //scene.background = new THREE.Color("white");
@@ -36,7 +45,8 @@ const controls = new OrbitControls(camera, renderer.domElement);
 
 const uniforms = {
     cubeMap: {type: "samplerCube", value: cubetex},
-    cubeNormalMap: {type: "samplerCube", value: cubenormaltex}
+    cubeNormalMap: {type: "samplerCube", value: cubenormaltex},
+    cubeColorMap: {type: "samplerCube", value: cubecolortex}
 };
 
 const material = new THREE.ShaderMaterial({
@@ -52,11 +62,12 @@ const material = new THREE.ShaderMaterial({
         `,
     fragmentShader: `
         in vec3 norm;
+        uniform samplerCube cubeColorMap;
         uniform samplerCube cubeNormalMap;
         void main(){
             vec3 n = texture(cubeNormalMap, norm).rgb;
             float dt = dot(n, vec3(0.0, 1.0, 0.0)) * 0.5 + 0.5;
-            gl_FragColor = vec4(vec3(dt), 1.0);
+            gl_FragColor = vec4(texture(cubeColorMap, norm).rgb * dt, 1.0);
         }`
 });
 

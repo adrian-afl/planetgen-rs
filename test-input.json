@@ -7,7 +7,7 @@
     "terrainGeneration": {
       "fbmScale": 1,
       "fbmIterations": 20,
-      "fbmFinalPower": 4,
+      "fbmFinalPower": 1.0,
       "fbmIterationScaleCoefficient": 2,
       "fbmIterationWeightCoefficient": 0.5,
       "heightModifiers": [],
@@ -26,10 +26,10 @@
         "roughness": 0.2,
         "erosionStrength": 1,
         "depositionStrength": 1,
-        "minAltitude": 0,
+        "minAltitude": -9999999,
         "maxAltitude": 10000,
         "minModifier": 0,
-        "maxModifier": 78
+        "maxModifier": 80
       },
       {
         "id": 1,
@@ -42,9 +42,9 @@
         "roughness": 0.05,
         "erosionStrength": 1,
         "depositionStrength": 1,
-        "minAltitude": 0,
+        "minAltitude": -9999999,
         "maxAltitude": 10000,
-        "minModifier": 78,
+        "minModifier": 70,
         "maxModifier": 90
       },
       {
@@ -58,7 +58,7 @@
         "roughness": 0.05,
         "erosionStrength": 1,
         "depositionStrength": 1,
-        "minAltitude": 10000,
+        "minAltitude": 5000,
         "maxAltitude": 9999999,
         "minModifier": 0,
         "maxModifier": 90
@@ -77,11 +77,11 @@
   "generatorConfig": {
     "outDir": "test-out-dir",
     "subdivideInitial": 3,
-    "subdivideLevel1": 3,
+    "subdivideLevel1": 2,
     "subdivideLevel2": 3,
     "subdivideLevel3": 3,
-    "erosionIterations": 100,
-    "erosionDropletsCount": 10000,
-    "cubeMapResolution": 1024
+    "erosionIterations": 10,
+    "erosionDropletsCount": 1000,
+    "cubeMapResolution": 512
   }
 }

@@ -1,5 +1,6 @@
 TODO:
 
+- Implement seeding!!
 - Implement height modifiers
 - Implement color modifiers
 - Save the real array of floats data, the cube_data in its raw form into binary files

@@ -4,3 +4,6 @@
 cubemap_visualizer/node_modules
 cubemap_visualizer/public/*.png
 /*.png
+
+//test-out-dir
+/test-out-dir/**/*

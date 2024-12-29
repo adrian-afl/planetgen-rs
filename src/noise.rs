@@ -59,14 +59,16 @@ pub fn super_value_noise(x: DVec3) -> f64 {
 
 pub fn fbm(pos: DVec3, iterations: u8, scaler: f64, weighter: f64) -> f64 {
     let mut res = 0.0;
-    let mut w = 0.5;
+    let mut w = 1.0;
+    let mut ws = 0.0;
     let mut s = 1.0;
     for i in 0..iterations {
         res += super_value_noise((pos + 2.0) * s) * w;
+        ws += w;
         s *= scaler;
         w *= weighter;
     }
-    res
+    (((res / ws) - 0.25) / 0.5).min(1.0).max(0.0)
     // let mut atomic = AtomicI64::new(0);
     // (0..iterations).into_par_iter().for_each(|i| {
     //     let w = 0.5f64.powf(i as f64);

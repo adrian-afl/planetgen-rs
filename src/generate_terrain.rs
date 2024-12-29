@@ -36,7 +36,7 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
         },
     }
 
-    fs::create_dir(&terrain_out_dir);
+    fs::create_dir_all(&terrain_out_dir);
     fs::create_dir(&terrain_icosphere_out_dir);
 
     let terrain = &input.terrain;
@@ -94,78 +94,6 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
         ),
     ];
 
-    mutable_biome.into_par_iter().for_each(|face| {
-        println!(
-            "Generating terrain biome face {}, res: {}",
-            face.0, cube_map_res
-        );
-        let mut face_data = face.1.lock().unwrap();
-        for y in (0..cube_map_res) {
-            for x in (0..cube_map_res) {
-                let dir = cube_map_biome.pixel_coords_to_direction(&face.0, x as usize, y as usize);
-                let index = (y as usize) * (cube_map_res as usize) + (x as usize);
-
-                let height = cube_map_height.get_bilinear(dir);
-
-                let modifier = match terrain.biome_modifier {
-                    InputBiomeModifier::Latitude => dir.y.abs(),
-                    InputBiomeModifier::Tidal => -dir.z, // so by default -z faces the star
-                    InputBiomeModifier::Random => fbm(dir, 4, 2.0, 0.5),
-                };
-
-                let suitable_biomes: Vec<&InputBiome> = terrain
-                    .biomes
-                    .iter()
-                    .filter(|biome| {
-                        if biome.min_altitude > height
-                            && biome.max_altitude < height
-                            && biome.min_modifier > height
-                            && biome.max_modifier < height
-                        {
-                            return true;
-                        }
-                        false
-                    })
-                    .collect();
-                if suitable_biomes.len() == 0 {
-                    panic!("Could not find a suitable biome for parameters height {height}, modifier {modifier}");
-                }
-                let interpolated = if suitable_biomes.len() == 1 {
-                    let biome = suitable_biomes[0];
-                    InterpolatedBiomeData {
-                        dominating_id: biome.id,
-                        color: DVec3::new(biome.color.x, biome.color.y, biome.color.z),
-                        roughness: biome.roughness,
-                        erosion_strength: biome.erosion_strength,
-                        deposition_strength: biome.deposition_strength,
-                    }
-                } else {
-                    let randomizer = suitable_biomes.len() as f64
-                        * fbm(dir * 3.0, 4, 2.2, 0.5);
-
-                    let randomizer_floor = randomizer.floor();
-                    let randomizer_ceil = randomizer.ceil();
-                    let randomizer_fract = randomizer.fract();
-
-                    let biome_a = suitable_biomes[randomizer_floor as usize];
-                    let biome_b = suitable_biomes[randomizer_ceil as usize];
-                    InterpolatedBiomeData {
-                        dominating_id: if randomizer_fract < 0.5 { biome_a.id } else { biome_b.id },
-                        color: DVec3::new(mix(biome_a.color.x, biome_b.color.x, randomizer_fract),
-                                          mix(biome_a.color.y, biome_b.color.y, randomizer_fract),
-                                          mix(biome_a.color.z, biome_b.color.z, randomizer_fract),
-                        ),
-                        roughness: mix(biome_a.roughness, biome_b.roughness, randomizer_fract),
-                        erosion_strength: mix(biome_a.erosion_strength, biome_b.erosion_strength, randomizer_fract),
-                        deposition_strength: mix(biome_a.deposition_strength, biome_b.deposition_strength, randomizer_fract),
-                    }
-                };
-
-                face_data[index] = interpolated;
-            }
-        }
-    });
-
     let mutable_height = [
         (
             CubeMapFace::PX,
@@ -221,6 +149,78 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
         }
     });
 
+    mutable_biome.into_par_iter().for_each(|face| {
+        println!(
+            "Generating terrain biome face {}, res: {}",
+            face.0, cube_map_res
+        );
+        let mut face_data = face.1.lock().unwrap();
+        for y in (0..cube_map_res) {
+            for x in (0..cube_map_res) {
+                let dir = cube_map_biome.pixel_coords_to_direction(&face.0, x as usize, y as usize);
+                let index = (y as usize) * (cube_map_res as usize) + (x as usize);
+
+                let height = cube_map_height.get_bilinear(dir) - terrain.radius;
+
+                let modifier = match terrain.biome_modifier {
+                    InputBiomeModifier::Latitude => dir.y.abs() * 90.0,
+                    InputBiomeModifier::Tidal => -dir.z, // so by default -z faces the star
+                    InputBiomeModifier::Random => fbm(dir, 4, 2.0, 0.5),
+                };
+
+                let suitable_biomes: Vec<&InputBiome> = terrain
+                    .biomes
+                    .iter()
+                    .filter(|biome| {
+                        if height >= biome.min_altitude
+                            && height <= biome.max_altitude
+                            && modifier >= biome.min_modifier
+                            && modifier <= biome.max_modifier
+                        {
+                            return true;
+                        }
+                        false
+                    })
+                    .collect();
+                if suitable_biomes.len() == 0 {
+                    panic!("Could not find a suitable biome for parameters height {height}, modifier {modifier}");
+                }
+                let interpolated = if suitable_biomes.len() == 1 {
+                    let biome = suitable_biomes[0];
+                    InterpolatedBiomeData {
+                        dominating_id: biome.id,
+                        color: DVec3::new(biome.color.x, biome.color.y, biome.color.z),
+                        roughness: biome.roughness,
+                        erosion_strength: biome.erosion_strength,
+                        deposition_strength: biome.deposition_strength,
+                    }
+                } else {
+                    let randomizer = (suitable_biomes.len() - 1) as f64
+                        * fbm(dir * 3.0, 4, 2.2, 0.5);
+
+                    let randomizer_floor = randomizer.floor();
+                    let randomizer_ceil = randomizer.ceil();
+                    let randomizer_fract = randomizer.fract();
+
+                    let biome_a = suitable_biomes[randomizer_floor as usize];
+                    let biome_b = suitable_biomes[randomizer_ceil as usize];
+                    InterpolatedBiomeData {
+                        dominating_id: if randomizer_fract < 0.5 { biome_a.id } else { biome_b.id },
+                        color: DVec3::new(mix(biome_a.color.x, biome_b.color.x, randomizer_fract),
+                                          mix(biome_a.color.y, biome_b.color.y, randomizer_fract),
+                                          mix(biome_a.color.z, biome_b.color.z, randomizer_fract),
+                        ),
+                        roughness: mix(biome_a.roughness, biome_b.roughness, randomizer_fract),
+                        erosion_strength: mix(biome_a.erosion_strength, biome_b.erosion_strength, randomizer_fract),
+                        deposition_strength: mix(biome_a.deposition_strength, biome_b.deposition_strength, randomizer_fract),
+                    }
+                };
+
+                face_data[index] = interpolated;
+            }
+        }
+    });
+
     erosion_run(
         &mut cube_map_height,
         &mut cube_map_biome,
@@ -235,12 +235,17 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
         imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let dir = cube_map_height.pixel_coords_to_direction(&face, x as usize, y as usize);
             let value = (cube_map_height.get_bilinear(dir) - terrain.radius - terrain.min_height)
-                / (terrain.max_height / terrain.min_height);
+                / (terrain.max_height - terrain.min_height);
+            // println!("{value}");
 
             *pixel = image::Luma([(value * 255.0) as u8]);
         });
         imgbuf
-            .save(format!("{:?}/height_face_{}.png", terrain_out_dir, face))
+            .save(
+                terrain_out_dir
+                    .clone()
+                    .join(format!("height_face_{}.png", face)),
+            )
             .unwrap();
         imgbuf
             .save(format!("cubemap_visualizer/public/face_{}.png", face))
@@ -262,13 +267,42 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
             ]);
         });
         imgbuf
-            .save(format!("{:?}/normal_face_{}.png", terrain_out_dir, face))
+            .save(
+                terrain_out_dir
+                    .clone()
+                    .join(format!("normal_face_{}.png", face)),
+            )
             .unwrap();
         imgbuf
             .save(format!(
                 "cubemap_visualizer/public/normal_face_{}.png",
                 face
             ))
+            .unwrap();
+    });
+
+    faces.clone().into_par_iter().for_each(|face| {
+        println!("Saving biome face {}, res: {}", face, cube_map_res);
+        let mut imgbuf = image::ImageBuffer::new(cube_map_res as u32, cube_map_res as u32);
+        imgbuf.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
+            let dir = cube_map_biome.pixel_coords_to_direction(&face, x as usize, y as usize);
+            let value = cube_map_biome.get(dir);
+
+            *pixel = image::Rgb([
+                (value.color.x * 255.0) as u8,
+                (value.color.y * 255.0) as u8,
+                (value.color.z * 255.0) as u8,
+            ]);
+        });
+        imgbuf
+            .save(
+                terrain_out_dir
+                    .clone()
+                    .join(format!("biome_face_{}.png", face)),
+            )
+            .unwrap();
+        imgbuf
+            .save(format!("cubemap_visualizer/public/biome_face_{}.png", face))
             .unwrap();
     });
 

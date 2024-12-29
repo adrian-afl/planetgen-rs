@@ -97,6 +97,7 @@ pub struct InputPlanetGenConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InputCelestialBodyDefinition {
     pub id: String,
     pub terrain: Option<InputTerrain>,
