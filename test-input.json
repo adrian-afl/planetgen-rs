@@ -84,10 +84,10 @@
     "subdivideLevel1": 3,
     "subdivideLevel2": 5,
     "subdivideLevel3": 6,
-    "erosionIterations": 1000,
-    "erosionDropletsCount": 40000,
+    "erosionIterations": 100,
+    "erosionDropletsCount": 4000,
     "erosionDropletVelocityCoefficient": 9.0,
     "erosionDropletEvaporationCoefficient": 2.0,
-    "cubeMapResolution": 4096
+    "cubeMapResolution": 512
   }
 }

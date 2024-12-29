@@ -1,6 +1,8 @@
 use crate::base_icosphere::get_base_icosphere;
 use crate::cubemap_data::CubeMapDataLayer;
 use crate::generate_terrain::InterpolatedBiomeData;
+use deflate::write::DeflateEncoder;
+use deflate::Compression;
 use glam::DVec3;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -79,7 +81,7 @@ Terrain layout is:
     roughness: float
 */
 fn write_vector_terrain(
-    file: &mut File,
+    file: &mut DeflateEncoder<File>,
     v: DVec3,
     n: DVec3,
     interpolated_biome_data: InterpolatedBiomeData,
@@ -112,7 +114,7 @@ fn write_vector_terrain(
 fn write_triangle_terrain(
     height_data: &CubeMapDataLayer<f64>,
     biome_data: &CubeMapDataLayer<InterpolatedBiomeData>,
-    file: &mut File,
+    file: &mut DeflateEncoder<File>,
     tri: &Triangle,
 ) {
     let vec0dir = tri[0].clone().normalize();
@@ -142,7 +144,7 @@ fn write_triangle_terrain(
 Water layout is just:
     position: vec3
 */
-fn write_vector_water(file: &mut File, v: DVec3) {
+fn write_vector_water(file: &mut DeflateEncoder<File>, v: DVec3) {
     file.write(&(v.x as f32).to_le_bytes())
         .expect("Write failed");
     file.write(&(v.y as f32).to_le_bytes())
@@ -151,7 +153,11 @@ fn write_vector_water(file: &mut File, v: DVec3) {
         .expect("Write failed");
 }
 
-fn write_triangle_water(height_data: &CubeMapDataLayer<f64>, file: &mut File, tri: &Triangle) {
+fn write_triangle_water(
+    height_data: &CubeMapDataLayer<f64>,
+    file: &mut DeflateEncoder<File>,
+    tri: &Triangle,
+) {
     write_vector_water(file, tri[0]);
     write_vector_water(file, tri[1]);
     write_vector_water(file, tri[2]);
@@ -193,35 +199,44 @@ pub fn generate_icosphere_raw(
                 });
 
             level0.into_par_iter().enumerate().for_each(|(index, t)| {
-                let mut level1file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l1.raw",
-                )
-                .expect("create failed");
+                let mut level1file = DeflateEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l1.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::Best,
+                );
 
-                let mut level2file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l2.raw",
-                )
-                .expect("create failed");
+                let mut level2file = DeflateEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l2.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::Best,
+                );
 
-                let mut level3file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l3.raw",
-                )
-                .expect("create failed");
+                let mut level3file = DeflateEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l3.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::Best,
+                );
 
                 let part_center = get_triangle_center(&t, sphere_radius);
 
