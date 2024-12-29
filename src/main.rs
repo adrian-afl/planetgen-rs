@@ -1,5 +1,6 @@
 mod base_icosphere;
 mod cli_args;
+mod craters;
 mod cubemap_data;
 mod erosion;
 mod generate_icosphere;

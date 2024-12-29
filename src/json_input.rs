@@ -40,6 +40,7 @@ pub struct InputTerrainGeneration {
     pub fbm_final_power: f64,
     pub height_modifiers: Vec<InputHeightModifier>,
     pub color_modifiers: Vec<InputColorModifier>,
+    pub craters_count: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,6 +64,9 @@ pub struct InputBiome {
     pub roughness: f64,
     pub erosion_strength: f64,
     pub deposition_strength: f64,
+    pub craters_probability: f64,
+    pub min_crater_size: f64,
+    pub max_crater_size: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

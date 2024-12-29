@@ -13,7 +13,7 @@ resulting changes are then applied on the main data and the iteration restarts
  */
 use crate::cubemap_data::CubeMapDataLayer;
 use crate::generate_terrain::InterpolatedBiomeData;
-use crate::random::random_2d_to_3d;
+use crate::random::{random_2d_to_3d, random_3d_to_3d};
 use glam::{DVec2, DVec3};
 use rayon::iter::ParallelIterator;
 use rayon::prelude::IntoParallelIterator;
@@ -130,7 +130,20 @@ pub fn erosion_run(
                 delta +=
                     get_droplet_deposit(&mut droplet, slope) * biome.deposition_strength as f64;
 
-                cube_map_height.add(smooth_normal, delta);
+                for x in 0..16 {
+                    cube_map_height.add(
+                        (smooth_normal
+                            + 2.0
+                                * cube_map_height.get_pixel_distance_for_dir(smooth_normal)
+                                * random_3d_to_3d(DVec3::new(
+                                    x as f64,
+                                    iteration as f64,
+                                    droplet_num as f64,
+                                )))
+                        .normalize(),
+                        delta / 16.0,
+                    );
+                }
 
                 update_droplet_position(&mut droplet, sphere_radius);
 

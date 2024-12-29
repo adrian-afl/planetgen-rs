@@ -6,6 +6,7 @@
     "maxHeight": 127000,
     "terrainGeneration": {
       "seed": 123324.0,
+      "cratersCount": 256,
       "fbmScale": 1,
       "fbmIterations": 20,
       "fbmFinalPower": 1.0,
@@ -25,12 +26,15 @@
           "z": 1
         },
         "roughness": 0.2,
-        "erosionStrength": 1,
-        "depositionStrength": 10,
+        "erosionStrength": 1.1,
+        "depositionStrength": 0.4,
         "minAltitude": 127000,
         "maxAltitude": 0,
         "minModifier": 90,
         "maxModifier": 0,
+        "cratersProbability": 0.2,
+        "minCraterSize": 1000.0,
+        "maxCraterSize": 600000.0,
         "seed": 123324.0
       },
       {
@@ -42,12 +46,15 @@
           "z": 1
         },
         "roughness": 0.05,
-        "erosionStrength": 1,
+        "erosionStrength": 0.1,
         "depositionStrength": 1,
         "minAltitude": 127000,
         "maxAltitude": 0,
         "minModifier": 70,
         "maxModifier": 390,
+        "cratersProbability": 0.1,
+        "minCraterSize": 1000.0,
+        "maxCraterSize": 100000.0,
         "seed": 123324.0
       },
       {
@@ -59,12 +66,15 @@
           "z": 0.3
         },
         "roughness": 0.05,
-        "erosionStrength": 10,
+        "erosionStrength": 2.0,
         "depositionStrength": 1,
         "minAltitude": 5000,
         "maxAltitude": 127000,
         "minModifier": -99999,
         "maxModifier": 99999,
+        "cratersProbability": 1.0,
+        "minCraterSize": 1000.0,
+        "maxCraterSize": 100000.0,
         "seed": 123324.0
       }
     ]
@@ -82,12 +92,12 @@
     "outDir": "test-out-dir",
     "subdivideInitial": 3,
     "subdivideLevel1": 3,
-    "subdivideLevel2": 5,
-    "subdivideLevel3": 6,
-    "erosionIterations": 100,
-    "erosionDropletsCount": 4000,
-    "erosionDropletVelocityCoefficient": 9.0,
+    "subdivideLevel2": 4,
+    "subdivideLevel3": 5,
+    "erosionIterations": 128,
+    "erosionDropletsCount": 10000,
+    "erosionDropletVelocityCoefficient": 5.0,
     "erosionDropletEvaporationCoefficient": 2.0,
-    "cubeMapResolution": 512
+    "cubeMapResolution": 2048
   }
 }

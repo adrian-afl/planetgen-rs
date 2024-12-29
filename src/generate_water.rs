@@ -70,6 +70,10 @@ pub fn generate_water(input: &InputCelestialBodyDefinition) {
             }
         }
     });
+    println!(
+        "Smallest distance: {}",
+        water_cube_map.get_smallest_pixel_distance() * water.height
+    );
 
     println!("Saving water icosphere");
     generate_icosphere_raw(

@@ -272,6 +272,7 @@ pub fn generate_icosphere_raw(
                     let t = normalize_triangle(&t);
                     let t = scale_triangle(&t, height_data);
                     let t = translate_triangle(&t, -part_center);
+                    // println!("DIST {}", (t[0] - t[1]).length());
                     match biome_data {
                         None => write_triangle_water(&height_data, &mut level3file, &t),
                         Some(biome_data) => {

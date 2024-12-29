@@ -1,3 +1,4 @@
+use crate::craters::add_craters;
 use crate::cubemap_data::{CubeMapDataLayer, CubeMapFace};
 use crate::erosion::erosion_run;
 use crate::generate_icosphere::generate_icosphere_raw;
@@ -21,6 +22,9 @@ pub struct InterpolatedBiomeData {
     pub roughness: f32,
     pub erosion_strength: f32,
     pub deposition_strength: f32,
+    pub craters_probability: f32,
+    pub min_crater_size: f32,
+    pub max_crater_size: f32,
 }
 
 fn generate_biomes(
@@ -83,6 +87,9 @@ fn generate_biomes(
                     roughness: 0.0,
                     erosion_strength: 0.0,
                     deposition_strength: 0.0,
+                    craters_probability: 0.0,
+                    min_crater_size: 0.0,
+                    max_crater_size: 0.0,
                 };
                 let mut sum: f32 = 0.0;
 
@@ -120,6 +127,10 @@ fn generate_biomes(
                     result.erosion_strength += (biome.erosion_strength * fitness) as f32;
                     result.deposition_strength += (biome.deposition_strength * fitness) as f32;
 
+                    result.craters_probability += (biome.craters_probability * fitness) as f32;
+                    result.min_crater_size += (biome.min_crater_size * fitness) as f32;
+                    result.max_crater_size += (biome.max_crater_size * fitness) as f32;
+
                     sum += fitness as f32;
                 });
 
@@ -129,6 +140,10 @@ fn generate_biomes(
                     result.roughness = result.roughness / sum;
                     result.erosion_strength = result.erosion_strength / sum;
                     result.deposition_strength = result.deposition_strength / sum;
+
+                    result.craters_probability = result.craters_probability / sum;
+                    result.min_crater_size = result.min_crater_size / sum;
+                    result.max_crater_size = result.max_crater_size / sum;
                 }
 
                 face_data[index] = result;
@@ -242,11 +257,22 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
             erosion_strength: 0.0,
             roughness: 1.0,
             // dominating_id: 0,
+            craters_probability: 0.0,
+            min_crater_size: 0.0,
+            max_crater_size: 0.0,
         },
     );
 
     generate_height(&input, &terrain, &cube_map_height);
     generate_biomes(&input, &terrain, &cube_map_height, &cube_map_biome);
+
+    add_craters(
+        &mut cube_map_height,
+        &cube_map_biome,
+        terrain.radius,
+        terrain.terrain_generation.seed,
+        terrain.terrain_generation.craters_count,
+    );
 
     erosion_run(
         &mut cube_map_height,

@@ -303,6 +303,60 @@ impl CubeMapDataLayer<f64> {
         }
     }
 
+    pub fn add_pixel(&self, face: &CubeMapFace, x: usize, y: usize, value: f64) {
+        let index = min(
+            y * (self.res as usize) + x,
+            (self.res as usize) * (self.res as usize) - 1,
+        );
+        match face {
+            CubeMapFace::PX => self.px.lock().unwrap()[index] += value,
+            CubeMapFace::PY => self.py.lock().unwrap()[index] += value,
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index] += value,
+            CubeMapFace::NX => self.nx.lock().unwrap()[index] += value,
+            CubeMapFace::NY => self.ny.lock().unwrap()[index] += value,
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index] += value,
+        }
+    }
+
+    pub fn add_bilinear(&self, coord: DVec3, value: f64) {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (self.res as f64));
+
+        let mut pixel1 = uv.floor();
+        let mut pixel2 = uv.ceil();
+        let pixel_fract = uv.fract_gl();
+
+        if (self.is_out_of_bounds(pixel1.x as isize, pixel1.y as isize)) {
+            pixel1.clone_from(&pixel2);
+        } else if (self.is_out_of_bounds(pixel2.x as isize, pixel2.y as isize)) {
+            pixel2.clone_from(&pixel1);
+        }
+
+        // I am REALLY not sure - TODO check it later
+
+        let pixcoord11 = (pixel1.x as usize, pixel1.y as usize);
+        let pixcoord12 = (pixel1.x as usize, pixel2.y as usize);
+        let pixcoord21 = (pixel2.x as usize, pixel1.y as usize);
+        let pixcoord22 = (pixel2.x as usize, pixel2.y as usize);
+
+        self.add_pixel(&face, pixcoord11.0, pixcoord11.1, value * pixel_fract.x);
+        self.add_pixel(
+            &face,
+            pixcoord12.0,
+            pixcoord12.1,
+            value * (1.0 - pixel_fract.x),
+        );
+
+        self.add_pixel(&face, pixcoord21.0, pixcoord21.1, value * pixel_fract.y);
+        self.add_pixel(
+            &face,
+            pixcoord22.0,
+            pixcoord22.1,
+            value * (1.0 - pixel_fract.y),
+        );
+    }
+
     pub fn get_bilinear(&self, coord: DVec3) -> f64 {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
@@ -332,7 +386,7 @@ impl CubeMapDataLayer<f64> {
     pub fn get_normal(&self, dir: DVec3, dxrange: f64) -> DVec3 {
         let dir = dir.normalize();
 
-        let tangdir = if dir.y.abs() < 0.999 {
+        let tangdir = if dir.y.abs() < 0.99 {
             DVec3::new(0.0, 1.0, 0.0).cross(dir).normalize()
         } else {
             DVec3::new(1.0, 0.0, 0.0).cross(dir).normalize()
