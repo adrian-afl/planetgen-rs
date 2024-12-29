@@ -32,6 +32,7 @@ pub struct InputColorModifier {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InputTerrainGeneration {
+    pub seed: f64,
     pub fbm_scale: f64,
     pub fbm_iterations: u8,
     pub fbm_iteration_scale_coefficient: f64,
@@ -53,6 +54,7 @@ pub enum InputBiomeModifier {
 #[serde(rename_all = "camelCase")]
 pub struct InputBiome {
     pub id: u32,
+    pub seed: f64,
     pub min_altitude: f64,
     pub max_altitude: f64,
     pub min_modifier: f64,
@@ -92,6 +94,8 @@ pub struct InputPlanetGenConfig {
 
     pub erosion_iterations: u16,
     pub erosion_droplets_count: u16,
+    pub erosion_droplet_velocity_coefficient: f64,
+    pub erosion_droplet_evaporation_coefficient: f64,
 
     pub cube_map_resolution: u16,
 }

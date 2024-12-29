@@ -1,3 +1,4 @@
+use crate::math_util::map;
 use crate::random::random_3d_to_1d;
 use glam::DVec3;
 use rayon::prelude::*;
@@ -68,7 +69,8 @@ pub fn fbm(pos: DVec3, iterations: u8, scaler: f64, weighter: f64) -> f64 {
         s *= scaler;
         w *= weighter;
     }
-    (((res / ws) - 0.25) / 0.5).min(1.0).max(0.0)
+    // range rix
+    map(res / ws, 0.25, 0.75, 0.0, 1.0).min(1.0).max(0.0)
     // let mut atomic = AtomicI64::new(0);
     // (0..iterations).into_par_iter().for_each(|i| {
     //     let w = 0.5f64.powf(i as f64);

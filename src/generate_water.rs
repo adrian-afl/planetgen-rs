@@ -71,15 +71,15 @@ pub fn generate_water(input: &InputCelestialBodyDefinition) {
         }
     });
 
-    // println!("Saving water icosphere");
-    // generate_icosphere_raw(
-    //     water_icosphere_out_dir.to_str().unwrap(),
-    //     &water_cube_map,
-    //     None,
-    //     water.height,
-    //     input.generator_config.subdivide_initial,
-    //     input.generator_config.subdivide_level1,
-    //     input.generator_config.subdivide_level2,
-    //     input.generator_config.subdivide_level3,
-    // );
+    println!("Saving water icosphere");
+    generate_icosphere_raw(
+        water_icosphere_out_dir.to_str().unwrap(),
+        &water_cube_map,
+        None,
+        water.height,
+        input.generator_config.subdivide_initial,
+        input.generator_config.subdivide_level1,
+        input.generator_config.subdivide_level2,
+        input.generator_config.subdivide_level3,
+    );
 }

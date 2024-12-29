@@ -2,9 +2,10 @@
   "id": "snowball-test",
   "terrain": {
     "radius": 6378000,
-    "minHeight": -27000,
-    "maxHeight": 27000,
+    "minHeight": -127000,
+    "maxHeight": 127000,
     "terrainGeneration": {
+      "seed": 123324.0,
       "fbmScale": 1,
       "fbmIterations": 20,
       "fbmFinalPower": 1.0,
@@ -25,43 +26,46 @@
         },
         "roughness": 0.2,
         "erosionStrength": 1,
-        "depositionStrength": 1,
-        "minAltitude": -9999999,
-        "maxAltitude": 10000,
-        "minModifier": 0,
-        "maxModifier": 80
+        "depositionStrength": 10,
+        "minAltitude": 127000,
+        "maxAltitude": 0,
+        "minModifier": 90,
+        "maxModifier": 0,
+        "seed": 123324.0
       },
       {
         "id": 1,
         "name": "ice",
         "color": {
-          "x": 0.3,
-          "y": 0.3,
+          "x": 0.90,
+          "y": 0.96,
           "z": 1
         },
         "roughness": 0.05,
         "erosionStrength": 1,
         "depositionStrength": 1,
-        "minAltitude": -9999999,
-        "maxAltitude": 10000,
+        "minAltitude": 127000,
+        "maxAltitude": 0,
         "minModifier": 70,
-        "maxModifier": 90
+        "maxModifier": 390,
+        "seed": 123324.0
       },
       {
         "id": 2,
         "name": "bare",
         "color": {
-          "x": 0.3,
-          "y": 0.3,
+          "x": 0.5,
+          "y": 0.4,
           "z": 0.3
         },
         "roughness": 0.05,
-        "erosionStrength": 1,
+        "erosionStrength": 10,
         "depositionStrength": 1,
         "minAltitude": 5000,
-        "maxAltitude": 9999999,
-        "minModifier": 0,
-        "maxModifier": 90
+        "maxAltitude": 127000,
+        "minModifier": -99999,
+        "maxModifier": 99999,
+        "seed": 123324.0
       }
     ]
   },
@@ -77,11 +81,13 @@
   "generatorConfig": {
     "outDir": "test-out-dir",
     "subdivideInitial": 3,
-    "subdivideLevel1": 2,
-    "subdivideLevel2": 3,
-    "subdivideLevel3": 3,
-    "erosionIterations": 10,
-    "erosionDropletsCount": 1000,
-    "cubeMapResolution": 512
+    "subdivideLevel1": 3,
+    "subdivideLevel2": 5,
+    "subdivideLevel3": 6,
+    "erosionIterations": 1000,
+    "erosionDropletsCount": 40000,
+    "erosionDropletVelocityCoefficient": 9.0,
+    "erosionDropletEvaporationCoefficient": 2.0,
+    "cubeMapResolution": 4096
   }
 }

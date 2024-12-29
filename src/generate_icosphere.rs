@@ -175,6 +175,7 @@ pub fn generate_icosphere_raw(
     base.into_iter()
         .enumerate()
         .for_each(|(index_main, triangle)| {
+            println!("{index_main}/{}", base.len());
             let mut level0 = subdivide_triangle_multiple(triangle, subdivide_initial);
 
             // not parallel to not worry about borrow checker

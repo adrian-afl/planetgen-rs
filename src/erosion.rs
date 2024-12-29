@@ -46,10 +46,12 @@ fn update_droplet_velocity(
     droplet: &mut ErosionDroplet,
     smooth_normal: DVec3,
     surface_normal: DVec3,
+    erosion_droplet_velocity_coefficient: f64,
 ) {
     let surface_velocity_vector = surface_normal - smooth_normal;
 
-    let velocity_surface_vector = surface_velocity_vector * 50.0;
+    let velocity_surface_vector =
+        surface_velocity_vector * 150.0 * erosion_droplet_velocity_coefficient;
 
     droplet.velocity += velocity_surface_vector;
     droplet.velocity *= 0.8;
@@ -60,8 +62,8 @@ fn update_droplet_position(droplet: &mut ErosionDroplet, sphere_radius: f64) {
     droplet.position = sphere_radius * droplet.position.normalize();
 }
 
-fn evaporate_droplet(droplet: &mut ErosionDroplet) {
-    droplet.water_left -= 0.01;
+fn evaporate_droplet(droplet: &mut ErosionDroplet, erosion_droplet_evaporation_coefficient: f64) {
+    droplet.water_left -= 0.01 * erosion_droplet_evaporation_coefficient;
 }
 
 fn get_droplet_erosion(droplet: &mut ErosionDroplet, slope: f64) -> f64 {
@@ -88,6 +90,8 @@ pub fn erosion_run(
     iterations: u16,
     droplets_per_iteration: u16,
     sphere_radius: f64,
+    erosion_droplet_velocity_coefficient: f64,
+    erosion_droplet_evaporation_coefficient: f64,
 ) {
     println!(
         "Erosion started, {iterations} iterations, {droplets_per_iteration} droplets per iteration"
@@ -111,20 +115,26 @@ pub fn erosion_run(
 
                 let slope = 1.0 - surface_normal.dot(smooth_normal).max(0.0).powf(88.0);
 
-                update_droplet_velocity(&mut droplet, smooth_normal, surface_normal);
+                update_droplet_velocity(
+                    &mut droplet,
+                    smooth_normal,
+                    surface_normal,
+                    erosion_droplet_velocity_coefficient,
+                );
 
                 let biome = cube_map_biome.get(smooth_normal);
 
                 let mut delta = 0.0;
 
-                delta -= get_droplet_erosion(&mut droplet, slope) * biome.erosion_strength;
-                delta += get_droplet_deposit(&mut droplet, slope) * biome.deposition_strength;
+                delta -= get_droplet_erosion(&mut droplet, slope) * biome.erosion_strength as f64;
+                delta +=
+                    get_droplet_deposit(&mut droplet, slope) * biome.deposition_strength as f64;
 
                 cube_map_height.add(smooth_normal, delta);
 
                 update_droplet_position(&mut droplet, sphere_radius);
 
-                evaporate_droplet(&mut droplet);
+                evaporate_droplet(&mut droplet, erosion_droplet_evaporation_coefficient);
 
                 if (droplet.velocity.length() < 0.01) {
                     cube_map_height.add(smooth_normal, droplet.accumulation);

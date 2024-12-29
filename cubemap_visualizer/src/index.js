@@ -57,7 +57,8 @@ const material = new THREE.ShaderMaterial({
         out vec3 norm;
         void main(){
             norm = normal;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0 );
+            vec3 h = texture(cubeMap, norm).rgb;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position + norm * h * 2.0, 1.0 );
         }
         `,
     fragmentShader: `
