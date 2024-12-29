@@ -27,14 +27,14 @@
         },
         "roughness": 0.2,
         "erosionStrength": 1.1,
-        "depositionStrength": 0.4,
+        "depositionStrength": 1.1,
         "minAltitude": 127000,
         "maxAltitude": 0,
         "minModifier": 90,
         "maxModifier": 0,
-        "cratersProbability": 0.2,
+        "cratersProbability": 0.02,
         "minCraterSize": 1000.0,
-        "maxCraterSize": 600000.0,
+        "maxCraterSize": 100000.0,
         "seed": 123324.0
       },
       {
@@ -72,7 +72,7 @@
         "maxAltitude": 127000,
         "minModifier": -99999,
         "maxModifier": 99999,
-        "cratersProbability": 1.0,
+        "cratersProbability": 0.1,
         "minCraterSize": 1000.0,
         "maxCraterSize": 100000.0,
         "seed": 123324.0
@@ -91,11 +91,11 @@
   "generatorConfig": {
     "outDir": "test-out-dir",
     "subdivideInitial": 3,
-    "subdivideLevel1": 3,
-    "subdivideLevel2": 4,
-    "subdivideLevel3": 5,
-    "erosionIterations": 128,
-    "erosionDropletsCount": 80000,
+    "subdivideLevel1": 5,
+    "subdivideLevel2": 6,
+    "subdivideLevel3": 7,
+    "erosionIterations": 300,
+    "erosionDropletsCount": 10000,
     "erosionDropletVelocityCoefficient": 5.0,
     "erosionDropletEvaporationCoefficient": 2.0,
     "cubeMapResolution": 2048

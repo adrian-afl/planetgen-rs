@@ -22,7 +22,7 @@ pub fn add_craters(
         let biome = cube_map_biome.get(random_dir);
 
         let size = map(
-            random_1d_to_1d(seed),
+            random_1d_to_1d(seed).powf(2.0), // make smaller craters more likely
             0.0,
             1.0,
             biome.min_crater_size as f64,

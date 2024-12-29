@@ -39,26 +39,32 @@ fn generate_biomes(
         (
             CubeMapFace::PX,
             cube_map_biome.get_mutable_face(&CubeMapFace::PX),
+            cube_map_height.get_mutable_face(&CubeMapFace::PX),
         ),
         (
             CubeMapFace::PY,
             cube_map_biome.get_mutable_face(&CubeMapFace::PY),
+            cube_map_height.get_mutable_face(&CubeMapFace::PY),
         ),
         (
             CubeMapFace::PZ,
             cube_map_biome.get_mutable_face(&CubeMapFace::PZ),
+            cube_map_height.get_mutable_face(&CubeMapFace::PZ),
         ),
         (
             CubeMapFace::NX,
             cube_map_biome.get_mutable_face(&CubeMapFace::NX),
+            cube_map_height.get_mutable_face(&CubeMapFace::NX),
         ),
         (
             CubeMapFace::NY,
             cube_map_biome.get_mutable_face(&CubeMapFace::NY),
+            cube_map_height.get_mutable_face(&CubeMapFace::NY),
         ),
         (
             CubeMapFace::NZ,
             cube_map_biome.get_mutable_face(&CubeMapFace::NZ),
+            cube_map_height.get_mutable_face(&CubeMapFace::NZ),
         ),
     ];
 
@@ -68,12 +74,13 @@ fn generate_biomes(
             face.0, cube_map_res
         );
         let mut face_data = face.1.lock().unwrap();
+        let mut height_face_data = face.2.lock().unwrap();
         for y in (0..cube_map_res) {
             for x in (0..cube_map_res) {
                 let dir = cube_map_biome.pixel_coords_to_direction(&face.0, x as usize, y as usize);
                 let index = (y as usize) * (cube_map_res as usize) + (x as usize);
 
-                let height = cube_map_height.get_bilinear(dir) - terrain.radius;
+                let height = height_face_data[index] - terrain.radius;
 
                 let modifier = match terrain.biome_modifier {
                     InputBiomeModifier::Latitude => dir.y.abs() * 90.0,
