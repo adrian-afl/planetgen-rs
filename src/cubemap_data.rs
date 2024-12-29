@@ -6,15 +6,15 @@ use std::f64::consts::PI;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
-pub struct CubeMapDataLayer {
+pub struct CubeMapDataLayer<Data> {
     res: u16,
 
-    px: Arc<Mutex<Vec<f64>>>,
-    py: Arc<Mutex<Vec<f64>>>,
-    pz: Arc<Mutex<Vec<f64>>>,
-    nx: Arc<Mutex<Vec<f64>>>,
-    ny: Arc<Mutex<Vec<f64>>>,
-    nz: Arc<Mutex<Vec<f64>>>,
+    px: Arc<Mutex<Vec<Data>>>,
+    py: Arc<Mutex<Vec<Data>>>,
+    pz: Arc<Mutex<Vec<Data>>>,
+    nx: Arc<Mutex<Vec<Data>>>,
+    ny: Arc<Mutex<Vec<Data>>>,
+    nz: Arc<Mutex<Vec<Data>>>,
 }
 
 #[derive(Clone)]
@@ -133,18 +133,36 @@ fn get_face(coord: DVec3) -> CubeMapFace {
     panic!("Impossible situation - no face found")
 }
 
-impl CubeMapDataLayer {
-    pub fn new(res: u16) -> CubeMapDataLayer {
+impl<Data: Clone> CubeMapDataLayer<Data> {
+    pub fn new(res: u16, initializer: Data) -> CubeMapDataLayer<Data> {
         let res_usize = res as usize;
         CubeMapDataLayer {
             res: res,
 
-            px: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
-            py: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
-            pz: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
-            nx: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
-            ny: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
-            nz: Arc::new(Mutex::from(vec![0.0; res_usize * res_usize])),
+            px: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
+            py: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
+            pz: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
+            nx: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
+            ny: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
+            nz: Arc::new(Mutex::from(vec![
+                initializer.clone();
+                res_usize * res_usize
+            ])),
         }
     }
 
@@ -152,7 +170,7 @@ impl CubeMapDataLayer {
         (x as u16) >= self.res || (y as u16) >= self.res || x < 0 || y < 0
     }
 
-    pub fn set_pixel(&self, face: &CubeMapFace, x: usize, y: usize, value: f64) {
+    pub fn set_pixel(&self, face: &CubeMapFace, x: usize, y: usize, value: Data) {
         let index = y * (self.res as usize) + x;
         match face {
             CubeMapFace::PX => self.px.lock().unwrap()[index] = value,
@@ -164,7 +182,7 @@ impl CubeMapDataLayer {
         }
     }
 
-    pub fn get_mutable_face(&self, face: &CubeMapFace) -> Arc<Mutex<Vec<f64>>> {
+    pub fn get_mutable_face(&self, face: &CubeMapFace) -> Arc<Mutex<Vec<Data>>> {
         match face {
             CubeMapFace::PX => self.px.clone(),
             CubeMapFace::PY => self.py.clone(),
@@ -216,7 +234,7 @@ impl CubeMapDataLayer {
 
     // TODO if this is to be used, it needs to also do bilinear filtering
     // maybe later
-    pub fn set(&self, coord: DVec3, value: f64) {
+    pub fn set(&self, coord: DVec3, value: Data) {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
         let uv = (uv01 * (self.res as f64)).floor();
@@ -231,6 +249,43 @@ impl CubeMapDataLayer {
         }
     }
 
+    pub fn get_pixel(&self, face: &CubeMapFace, x: usize, y: usize) -> Data {
+        let index = min(
+            y * (self.res as usize) + x,
+            (self.res as usize) * (self.res as usize) - 1,
+        );
+        match face {
+            CubeMapFace::PX => self.px.lock().unwrap()[index].clone(),
+            CubeMapFace::PY => self.py.lock().unwrap()[index].clone(),
+            CubeMapFace::PZ => self.pz.lock().unwrap()[index].clone(),
+            CubeMapFace::NX => self.nx.lock().unwrap()[index].clone(),
+            CubeMapFace::NY => self.ny.lock().unwrap()[index].clone(),
+            CubeMapFace::NZ => self.nz.lock().unwrap()[index].clone(),
+        }
+    }
+
+    pub fn get(&self, coord: DVec3) -> Data {
+        let face = get_face(coord);
+        let uv01 = project_direction(&face, coord).unwrap();
+        let uv = (uv01 * (self.res as f64));
+        let mut pixel = uv.floor();
+        if (pixel.x < 0.0) {
+            pixel.x = 0.0;
+        }
+        if (pixel.x >= (self.res - 1) as f64) {
+            pixel.x = (self.res - 1) as f64;
+        }
+        if (pixel.y < 0.0) {
+            pixel.y = 0.0;
+        }
+        if (pixel.y >= (self.res - 1) as f64) {
+            pixel.y = (self.res - 1) as f64;
+        }
+        self.get_pixel(&face, pixel.x as usize, pixel.y as usize)
+    }
+}
+
+impl CubeMapDataLayer<f64> {
     // TODO if this is to be used, it needs to also do bilinear filtering
     // maybe later
     pub fn add(&self, coord: DVec3, value: f64) {
@@ -248,39 +303,10 @@ impl CubeMapDataLayer {
         }
     }
 
-    pub fn get_pixel(&self, face: &CubeMapFace, x: usize, y: usize) -> f64 {
-        let index = min(
-            y * (self.res as usize) + x,
-            (self.res as usize) * (self.res as usize) - 1,
-        );
-        match face {
-            CubeMapFace::PX => self.px.lock().unwrap()[index],
-            CubeMapFace::PY => self.py.lock().unwrap()[index],
-            CubeMapFace::PZ => self.pz.lock().unwrap()[index],
-            CubeMapFace::NX => self.nx.lock().unwrap()[index],
-            CubeMapFace::NY => self.ny.lock().unwrap()[index],
-            CubeMapFace::NZ => self.nz.lock().unwrap()[index],
-        }
-    }
-
-    pub fn get(&self, coord: DVec3) -> f64 {
+    pub fn get_bilinear(&self, coord: DVec3) -> f64 {
         let face = get_face(coord);
         let uv01 = project_direction(&face, coord).unwrap();
         let uv = (uv01 * (self.res as f64));
-        // let mut pixel = uv.floor();
-        // if (pixel.x < 0.0) {
-        //     pixel.x = 0.0;
-        // }
-        // if (pixel.x >= (self.res - 1) as f64) {
-        //     pixel.x = (self.res - 1) as f64;
-        // }
-        // if (pixel.y < 0.0) {
-        //     pixel.y = 0.0;
-        // }
-        // if (pixel.y >= (self.res - 1) as f64) {
-        //     pixel.y = (self.res - 1) as f64;
-        // }
-        // return self.get_pixel(&face, pixel.x as usize, pixel.y as usize);
 
         let mut pixel1 = uv.floor();
         let mut pixel2 = uv.ceil();
@@ -318,10 +344,10 @@ impl CubeMapDataLayer {
         let dir3 = (dir - tangdir * dxrange).normalize();
         let dir4 = (dir - bitangdir * dxrange).normalize();
 
-        let p1 = dir1 * self.get(dir1);
-        let p2 = dir2 * self.get(dir2);
-        let p3 = dir3 * self.get(dir3);
-        let p4 = dir4 * self.get(dir4);
+        let p1 = dir1 * self.get_bilinear(dir1);
+        let p2 = dir2 * self.get_bilinear(dir2);
+        let p3 = dir3 * self.get_bilinear(dir3);
+        let p4 = dir4 * self.get_bilinear(dir4);
 
         let n1 = (p2 - p1).cross(p3 - p1);
         let n2 = (p3 - p1).cross(p4 - p1);
@@ -337,7 +363,7 @@ mod tests {
     #[test]
     fn test_reprojection_px() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::PX, 32, 32);
         let uv = project_direction(&CubeMapFace::PX, dir).unwrap();
@@ -350,7 +376,7 @@ mod tests {
     #[test]
     fn test_reprojection_py() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::PY, 32, 32);
         let uv = project_direction(&CubeMapFace::PY, dir).unwrap();
@@ -363,7 +389,7 @@ mod tests {
     #[test]
     fn test_reprojection_pz() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::PZ, 32, 32);
         let uv = project_direction(&CubeMapFace::PZ, dir).unwrap();
@@ -376,7 +402,7 @@ mod tests {
     #[test]
     fn test_reprojection_nx() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::NX, 32, 32);
         let uv = project_direction(&CubeMapFace::NX, dir).unwrap();
@@ -389,7 +415,7 @@ mod tests {
     #[test]
     fn test_reprojection_ny() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::NY, 32, 32);
         let uv = project_direction(&CubeMapFace::NY, dir).unwrap();
@@ -402,7 +428,7 @@ mod tests {
     #[test]
     fn test_reprojection_nz() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let dir = cube_map.pixel_coords_to_direction(&CubeMapFace::NZ, 32, 32);
         let uv = project_direction(&CubeMapFace::NZ, dir).unwrap();
@@ -415,7 +441,7 @@ mod tests {
     #[test]
     fn test_set_pixel() {
         const RES: u16 = 128;
-        let mut cube_map: CubeMapDataLayer = CubeMapDataLayer::new(RES);
+        let mut cube_map: CubeMapDataLayer<f64> = CubeMapDataLayer::new(RES, 0.0);
 
         let faces = [
             CubeMapFace::PX,

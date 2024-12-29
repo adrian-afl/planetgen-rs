@@ -71,6 +71,7 @@ pub struct InputTerrain {
     pub max_height: f64,
     pub biome_modifier: InputBiomeModifier,
     pub biomes: Vec<InputBiome>,
+    pub terrain_generation: InputTerrainGeneration,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

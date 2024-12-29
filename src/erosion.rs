@@ -12,6 +12,7 @@ iterate all teh droplers in parallel until all end their journeys
 resulting changes are then applied on the main data and the iteration restarts
  */
 use crate::cubemap_data::CubeMapDataLayer;
+use crate::generate_terrain::InterpolatedBiomeData;
 use crate::random::random_2d_to_3d;
 use glam::{DVec2, DVec3};
 use rayon::iter::ParallelIterator;
@@ -34,7 +35,7 @@ fn asymptotic(x: f64, limit: f64) -> f64 {
     (1.0 - 1.0 / x.exp()) * limit
 }
 
-fn get_surface_normal(cubemap_data: &CubeMapDataLayer, smooth_normal: DVec3) -> DVec3 {
+fn get_surface_normal(cubemap_data: &CubeMapDataLayer<f64>, smooth_normal: DVec3) -> DVec3 {
     cubemap_data.get_normal(
         smooth_normal,
         cubemap_data.get_pixel_distance_for_dir(smooth_normal),
@@ -82,7 +83,8 @@ fn get_droplet_deposit(droplet: &mut ErosionDroplet, slope: f64) -> f64 {
 }
 
 pub fn erosion_run(
-    cubemap_data: &mut CubeMapDataLayer,
+    cube_map_height: &mut CubeMapDataLayer<f64>,
+    cube_map_biome: &mut CubeMapDataLayer<InterpolatedBiomeData>,
     iterations: u16,
     droplets_per_iteration: u16,
     sphere_radius: f64,
@@ -105,25 +107,27 @@ pub fn erosion_run(
 
             while droplet.water_left > 0.0 {
                 let smooth_normal = droplet.position.clone().normalize();
-                let surface_normal = get_surface_normal(&cubemap_data, smooth_normal);
+                let surface_normal = get_surface_normal(&cube_map_height, smooth_normal);
 
                 let slope = 1.0 - surface_normal.dot(smooth_normal).max(0.0).powf(88.0);
 
                 update_droplet_velocity(&mut droplet, smooth_normal, surface_normal);
 
+                let biome = cube_map_biome.get(smooth_normal);
+
                 let mut delta = 0.0;
 
-                delta -= get_droplet_erosion(&mut droplet, slope);
-                delta += get_droplet_deposit(&mut droplet, slope);
+                delta -= get_droplet_erosion(&mut droplet, slope) * biome.erosion_strength;
+                delta += get_droplet_deposit(&mut droplet, slope) * biome.deposition_strength;
 
-                cubemap_data.add(smooth_normal, delta);
+                cube_map_height.add(smooth_normal, delta);
 
                 update_droplet_position(&mut droplet, sphere_radius);
 
                 evaporate_droplet(&mut droplet);
 
                 if (droplet.velocity.length() < 0.01) {
-                    cubemap_data.add(smooth_normal, droplet.accumulation);
+                    cube_map_height.add(smooth_normal, droplet.accumulation);
                     break;
                 }
             }
