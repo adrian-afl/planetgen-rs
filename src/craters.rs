@@ -47,7 +47,16 @@ pub fn add_craters(
 
         (0..distance_steps).into_par_iter().for_each(|d_step| {
             let d = (d_step as f64) * pixel_size;
-            let depth = (distance_steps - d_step) as f64;
+            let percentage = d_step as f64 / distance_steps as f64;
+
+            let depth = if percentage > 0.6 {
+                // looking from edge to center
+                1.0 - ((percentage - 0.6) / 0.4) // this needs to go from 0 to 1
+            } else {
+                ((percentage / 0.6 - 1.0) * 3.0) + 1.0 // this needs to go from 1 to like -3 or -4
+            };
+            let depth = depth * 0.00003 * size;
+
             let dist = (d_step as f64 / distance_steps as f64) * (size / terrain_radius);
 
             let ciricumfence = 2.0 * PI * dist;
@@ -56,7 +65,7 @@ pub fn add_craters(
                 let rad = 2.0 * PI * (a_step as f64 / circle_steps as f64);
                 let orient = DQuat::from_axis_angle(random_dir, rad);
                 let vec = (random_dir + orient * surface_tangent * dist).normalize();
-                cube_map_height.add(vec, -depth.powf(2.0) * 0.00003 * size);
+                cube_map_height.add(vec, depth);
             }
         });
 
