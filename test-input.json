@@ -90,14 +90,14 @@
   },
   "generatorConfig": {
     "outDir": "test-out-dir",
-    "subdivideInitial": 3,
+    "subdivideInitial": 2,
     "subdivideLevel1": 5,
     "subdivideLevel2": 6,
     "subdivideLevel3": 7,
-    "erosionIterations": 300,
+    "erosionIterations": 30,
     "erosionDropletsCount": 10000,
     "erosionDropletVelocityCoefficient": 5.0,
     "erosionDropletEvaporationCoefficient": 2.0,
-    "cubeMapResolution": 2048
+    "cubeMapResolution": 512
   }
 }

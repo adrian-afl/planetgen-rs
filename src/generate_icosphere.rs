@@ -1,8 +1,6 @@
 use crate::base_icosphere::get_base_icosphere;
 use crate::cubemap_data::CubeMapDataLayer;
 use crate::generate_terrain::InterpolatedBiomeData;
-use deflate::write::DeflateEncoder;
-use deflate::Compression;
 use glam::DVec3;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -79,88 +77,104 @@ Terrain layout is:
     normal: vec3
     color: vec3
     roughness: float
+    global_index: uint32
 */
 fn write_vector_terrain(
-    file: &mut DeflateEncoder<File>,
+    file: &mut File,
     v: DVec3,
     n: DVec3,
     interpolated_biome_data: InterpolatedBiomeData,
+    global_index: u32,
 ) {
-    file.write(&(v.x as f32).to_le_bytes())
+    file.write_all(&(v.x as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(v.y as f32).to_le_bytes())
+    file.write_all(&(v.y as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(v.z as f32).to_le_bytes())
-        .expect("Write failed");
-
-    file.write(&(n.x as f32).to_le_bytes())
-        .expect("Write failed");
-    file.write(&(n.y as f32).to_le_bytes())
-        .expect("Write failed");
-    file.write(&(n.z as f32).to_le_bytes())
+    file.write_all(&(v.z as f32).to_le_bytes())
         .expect("Write failed");
 
-    file.write(&(interpolated_biome_data.color.x as f32).to_le_bytes())
+    file.write_all(&(n.x as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(interpolated_biome_data.color.y as f32).to_le_bytes())
+    file.write_all(&(n.y as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(interpolated_biome_data.color.z as f32).to_le_bytes())
+    file.write_all(&(n.z as f32).to_le_bytes())
         .expect("Write failed");
 
-    file.write(&(interpolated_biome_data.roughness as f32).to_le_bytes())
+    file.write_all(&(interpolated_biome_data.color.x as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&(interpolated_biome_data.color.y as f32).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&(interpolated_biome_data.color.z as f32).to_le_bytes())
+        .expect("Write failed");
+
+    file.write_all(&(interpolated_biome_data.roughness as f32).to_le_bytes())
+        .expect("Write failed");
+
+    file.write_all(&(global_index as u32).to_le_bytes())
         .expect("Write failed");
 }
 
 fn write_triangle_terrain(
     height_data: &CubeMapDataLayer<f64>,
     biome_data: &CubeMapDataLayer<InterpolatedBiomeData>,
-    file: &mut DeflateEncoder<File>,
+    file: &mut File,
     tri: &Triangle,
+    norm_tri: &Triangle,
+    global_index: u32,
 ) {
-    let vec0dir = tri[0].clone().normalize();
-    let vec1dir = tri[1].clone().normalize();
-    let vec2dir = tri[2].clone().normalize();
     write_vector_terrain(
         file,
         tri[0],
-        height_data.get_normal(vec0dir, height_data.get_pixel_distance_for_dir(vec0dir)),
-        biome_data.get(vec0dir),
+        height_data.get_normal(
+            norm_tri[0],
+            height_data.get_pixel_distance_for_dir(norm_tri[0]),
+        ),
+        biome_data.get(norm_tri[0]),
+        global_index,
     );
     write_vector_terrain(
         file,
         tri[1],
-        height_data.get_normal(vec1dir, height_data.get_pixel_distance_for_dir(vec1dir)),
-        biome_data.get(vec1dir),
+        height_data.get_normal(
+            norm_tri[1],
+            height_data.get_pixel_distance_for_dir(norm_tri[1]),
+        ),
+        biome_data.get(norm_tri[1]),
+        global_index,
     );
     write_vector_terrain(
         file,
         tri[2],
-        height_data.get_normal(vec2dir, height_data.get_pixel_distance_for_dir(vec2dir)),
-        biome_data.get(vec2dir),
+        height_data.get_normal(
+            norm_tri[2],
+            height_data.get_pixel_distance_for_dir(norm_tri[2]),
+        ),
+        biome_data.get(norm_tri[2]),
+        global_index,
     );
 }
 
 /*
 Water layout is just:
     position: vec3
+    global_index: uint32
 */
-fn write_vector_water(file: &mut DeflateEncoder<File>, v: DVec3) {
-    file.write(&(v.x as f32).to_le_bytes())
+fn write_vector_water(file: &mut File, v: DVec3, global_index: u32) {
+    file.write_all(&(v.x as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(v.y as f32).to_le_bytes())
+    file.write_all(&(v.y as f32).to_le_bytes())
         .expect("Write failed");
-    file.write(&(v.z as f32).to_le_bytes())
+    file.write_all(&(v.z as f32).to_le_bytes())
+        .expect("Write failed");
+
+    file.write_all(&(global_index as u32).to_le_bytes())
         .expect("Write failed");
 }
 
-fn write_triangle_water(
-    height_data: &CubeMapDataLayer<f64>,
-    file: &mut DeflateEncoder<File>,
-    tri: &Triangle,
-) {
-    write_vector_water(file, tri[0]);
-    write_vector_water(file, tri[1]);
-    write_vector_water(file, tri[2]);
+fn write_triangle_water(file: &mut File, tri: &Triangle, global_index: u32) {
+    write_vector_water(file, tri[0], global_index);
+    write_vector_water(file, tri[1], global_index);
+    write_vector_water(file, tri[2], global_index);
 }
 
 pub fn generate_icosphere_raw(
@@ -198,45 +212,37 @@ pub fn generate_icosphere_raw(
                     metadata_file.write(data.as_bytes()).expect("Write failed");
                 });
 
+            let level0_len = level0.len();
             level0.into_par_iter().enumerate().for_each(|(index, t)| {
-                let mut level1file = DeflateEncoder::new(
-                    File::create(
-                        output_dir.to_owned()
-                            + "/"
-                            + (index_main).to_string().as_str()
-                            + "-"
-                            + (index).to_string().as_str()
-                            + ".l1.raw",
-                    )
-                    .expect("create failed"),
-                    Compression::Best,
-                );
+                let mut level1file = File::create(
+                    output_dir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "-"
+                        + (index).to_string().as_str()
+                        + ".l1.raw",
+                )
+                .expect("create failed");
 
-                let mut level2file = DeflateEncoder::new(
-                    File::create(
-                        output_dir.to_owned()
-                            + "/"
-                            + (index_main).to_string().as_str()
-                            + "-"
-                            + (index).to_string().as_str()
-                            + ".l2.raw",
-                    )
-                    .expect("create failed"),
-                    Compression::Best,
-                );
+                let mut level2file = File::create(
+                    output_dir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "-"
+                        + (index).to_string().as_str()
+                        + ".l2.raw",
+                )
+                .expect("create failed");
 
-                let mut level3file = DeflateEncoder::new(
-                    File::create(
-                        output_dir.to_owned()
-                            + "/"
-                            + (index_main).to_string().as_str()
-                            + "-"
-                            + (index).to_string().as_str()
-                            + ".l3.raw",
-                    )
-                    .expect("create failed"),
-                    Compression::Best,
-                );
+                let mut level3file = File::create(
+                    output_dir.to_owned()
+                        + "/"
+                        + (index_main).to_string().as_str()
+                        + "-"
+                        + (index).to_string().as_str()
+                        + ".l3.raw",
+                )
+                .expect("create failed");
 
                 let part_center = get_triangle_center(&t, sphere_radius);
 
@@ -244,40 +250,69 @@ pub fn generate_icosphere_raw(
                 let mut level2 = subdivide_triangle_multiple(t, subdivide_level2);
                 let mut level3 = subdivide_triangle_multiple(t, subdivide_level3);
 
+                let global_index = (index_main * level0_len) as u32 + index as u32;
+
                 level1.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
+                    let vec0dir = t[0].clone().normalize();
+                    let vec1dir = t[1].clone().normalize();
+                    let vec2dir = t[2].clone().normalize();
+                    let directions_triangle: Triangle = [vec0dir, vec1dir, vec2dir];
                     let t = scale_triangle(&t, height_data);
                     let t = translate_triangle(&t, -part_center);
                     match biome_data {
-                        None => write_triangle_water(&height_data, &mut level1file, &t),
-                        Some(biome_data) => {
-                            write_triangle_terrain(&height_data, &biome_data, &mut level1file, &t)
-                        }
+                        None => write_triangle_water(&mut level1file, &t, global_index),
+                        Some(biome_data) => write_triangle_terrain(
+                            &height_data,
+                            &biome_data,
+                            &mut level1file,
+                            &t,
+                            &directions_triangle,
+                            global_index,
+                        ),
                     }
                 });
 
                 level2.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
+                    let vec0dir = t[0].clone().normalize();
+                    let vec1dir = t[1].clone().normalize();
+                    let vec2dir = t[2].clone().normalize();
+                    let directions_triangle: Triangle = [vec0dir, vec1dir, vec2dir];
                     let t = scale_triangle(&t, height_data);
                     let t = translate_triangle(&t, -part_center);
                     match biome_data {
-                        None => write_triangle_water(&height_data, &mut level2file, &t),
-                        Some(biome_data) => {
-                            write_triangle_terrain(&height_data, &biome_data, &mut level2file, &t)
-                        }
+                        None => write_triangle_water(&mut level2file, &t, global_index),
+                        Some(biome_data) => write_triangle_terrain(
+                            &height_data,
+                            &biome_data,
+                            &mut level2file,
+                            &t,
+                            &directions_triangle,
+                            global_index,
+                        ),
                     }
                 });
 
                 level3.iter_mut().for_each(|t| {
                     let t = normalize_triangle(&t);
+                    let vec0dir = t[0].clone().normalize();
+                    let vec1dir = t[1].clone().normalize();
+                    let vec2dir = t[2].clone().normalize();
+                    let directions_triangle: Triangle = [vec0dir, vec1dir, vec2dir];
                     let t = scale_triangle(&t, height_data);
                     let t = translate_triangle(&t, -part_center);
                     // println!("DIST {}", (t[0] - t[1]).length());
                     match biome_data {
-                        None => write_triangle_water(&height_data, &mut level3file, &t),
-                        Some(biome_data) => {
-                            write_triangle_terrain(&height_data, &biome_data, &mut level3file, &t)
-                        }
+                        None => write_triangle_water(&mut level3file, &t, global_index),
+                        Some(biome_data) => write_triangle_terrain(
+                            &height_data,
+                            &biome_data,
+                            &mut level3file,
+                            &t,
+                            &directions_triangle,
+                            global_index,
+                        ),
                     }
                 });
                 level1file.flush().unwrap();
