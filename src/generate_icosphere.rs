@@ -1,6 +1,8 @@
 use crate::base_icosphere::get_base_icosphere;
 use crate::cubemap_data::CubeMapDataLayer;
 use crate::generate_terrain::InterpolatedBiomeData;
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
 use glam::DVec3;
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -80,7 +82,7 @@ Terrain layout is:
     global_index: uint32
 */
 fn write_vector_terrain(
-    file: &mut File,
+    file: &mut dyn Write,
     v: DVec3,
     n: DVec3,
     interpolated_biome_data: InterpolatedBiomeData,
@@ -93,31 +95,31 @@ fn write_vector_terrain(
     file.write_all(&(v.z as f32).to_le_bytes())
         .expect("Write failed");
 
-    file.write_all(&(n.x as f32).to_le_bytes())
+    file.write_all(&((n.x * 127.0) as u8).to_le_bytes())
         .expect("Write failed");
-    file.write_all(&(n.y as f32).to_le_bytes())
+    file.write_all(&((n.y * 127.0) as u8).to_le_bytes())
         .expect("Write failed");
-    file.write_all(&(n.z as f32).to_le_bytes())
-        .expect("Write failed");
-
-    file.write_all(&(interpolated_biome_data.color.x as f32).to_le_bytes())
-        .expect("Write failed");
-    file.write_all(&(interpolated_biome_data.color.y as f32).to_le_bytes())
-        .expect("Write failed");
-    file.write_all(&(interpolated_biome_data.color.z as f32).to_le_bytes())
+    file.write_all(&((n.z * 127.0) as u8).to_le_bytes())
         .expect("Write failed");
 
-    file.write_all(&(interpolated_biome_data.roughness as f32).to_le_bytes())
+    file.write_all(&((interpolated_biome_data.color.x * 255.0) as u8).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&((interpolated_biome_data.color.y * 255.0) as u8).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&((interpolated_biome_data.color.z * 255.0) as u8).to_le_bytes())
         .expect("Write failed");
 
-    file.write_all(&(global_index as u32).to_le_bytes())
+    file.write_all(&((interpolated_biome_data.roughness * 255.0) as u8).to_le_bytes())
+        .expect("Write failed");
+
+    file.write_all(&(global_index as u16).to_le_bytes())
         .expect("Write failed");
 }
 
 fn write_triangle_terrain(
     height_data: &CubeMapDataLayer<f64>,
     biome_data: &CubeMapDataLayer<InterpolatedBiomeData>,
-    file: &mut File,
+    file: &mut dyn Write,
     tri: &Triangle,
     norm_tri: &Triangle,
     global_index: u32,
@@ -159,7 +161,7 @@ Water layout is just:
     position: vec3
     global_index: uint32
 */
-fn write_vector_water(file: &mut File, v: DVec3, global_index: u32) {
+fn write_vector_water(file: &mut dyn Write, v: DVec3, global_index: u32) {
     file.write_all(&(v.x as f32).to_le_bytes())
         .expect("Write failed");
     file.write_all(&(v.y as f32).to_le_bytes())
@@ -167,11 +169,11 @@ fn write_vector_water(file: &mut File, v: DVec3, global_index: u32) {
     file.write_all(&(v.z as f32).to_le_bytes())
         .expect("Write failed");
 
-    file.write_all(&(global_index as u32).to_le_bytes())
+    file.write_all(&(global_index as u16).to_le_bytes())
         .expect("Write failed");
 }
 
-fn write_triangle_water(file: &mut File, tri: &Triangle, global_index: u32) {
+fn write_triangle_water(file: &mut dyn Write, tri: &Triangle, global_index: u32) {
     write_vector_water(file, tri[0], global_index);
     write_vector_water(file, tri[1], global_index);
     write_vector_water(file, tri[2], global_index);
@@ -214,35 +216,44 @@ pub fn generate_icosphere_raw(
 
             let level0_len = level0.len();
             level0.into_par_iter().enumerate().for_each(|(index, t)| {
-                let mut level1file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l1.raw",
-                )
-                .expect("create failed");
+                let mut level1file = ZlibEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l1.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::best(),
+                );
 
-                let mut level2file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l2.raw",
-                )
-                .expect("create failed");
+                let mut level2file = ZlibEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l2.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::best(),
+                );
 
-                let mut level3file = File::create(
-                    output_dir.to_owned()
-                        + "/"
-                        + (index_main).to_string().as_str()
-                        + "-"
-                        + (index).to_string().as_str()
-                        + ".l3.raw",
-                )
-                .expect("create failed");
+                let mut level3file = ZlibEncoder::new(
+                    File::create(
+                        output_dir.to_owned()
+                            + "/"
+                            + (index_main).to_string().as_str()
+                            + "-"
+                            + (index).to_string().as_str()
+                            + ".l3.raw",
+                    )
+                    .expect("create failed"),
+                    Compression::best(),
+                );
 
                 let part_center = get_triangle_center(&t, sphere_radius);
 
@@ -315,9 +326,9 @@ pub fn generate_icosphere_raw(
                         ),
                     }
                 });
-                level1file.flush().unwrap();
-                level2file.flush().unwrap();
-                level3file.flush().unwrap();
+                level1file.finish().unwrap().flush().unwrap();
+                level2file.finish().unwrap().flush().unwrap();
+                level3file.finish().unwrap().flush().unwrap();
             });
         });
     metadata_file.flush().unwrap();
