@@ -216,7 +216,7 @@ pub fn generate_icosphere_raw(
 
             let level0_len = level0.len();
             level0.into_par_iter().enumerate().for_each(|(index, t)| {
-                let mut level1file = ZlibEncoder::new(
+                let mut level1file = brotli::CompressorWriter::new(
                     File::create(
                         output_dir.to_owned()
                             + "/"
@@ -226,10 +226,12 @@ pub fn generate_icosphere_raw(
                             + ".l1.raw",
                     )
                     .expect("create failed"),
-                    Compression::best(),
+                    40960,
+                    11,
+                    21,
                 );
 
-                let mut level2file = ZlibEncoder::new(
+                let mut level2file = brotli::CompressorWriter::new(
                     File::create(
                         output_dir.to_owned()
                             + "/"
@@ -239,10 +241,12 @@ pub fn generate_icosphere_raw(
                             + ".l2.raw",
                     )
                     .expect("create failed"),
-                    Compression::best(),
+                    40960,
+                    11,
+                    21,
                 );
 
-                let mut level3file = ZlibEncoder::new(
+                let mut level3file = brotli::CompressorWriter::new(
                     File::create(
                         output_dir.to_owned()
                             + "/"
@@ -252,7 +256,9 @@ pub fn generate_icosphere_raw(
                             + ".l3.raw",
                     )
                     .expect("create failed"),
-                    Compression::best(),
+                    40960,
+                    11,
+                    21,
                 );
 
                 let part_center = get_triangle_center(&t, sphere_radius);
@@ -326,9 +332,9 @@ pub fn generate_icosphere_raw(
                         ),
                     }
                 });
-                level1file.finish().unwrap().flush().unwrap();
-                level2file.finish().unwrap().flush().unwrap();
-                level3file.finish().unwrap().flush().unwrap();
+                level1file.flush().unwrap();
+                level2file.flush().unwrap();
+                level3file.flush().unwrap();
             });
         });
     metadata_file.flush().unwrap();

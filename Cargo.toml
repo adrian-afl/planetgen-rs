@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+brotli = "7.0.0"
 clap = { version = "4.5.23", features = ["derive"] }
 flate2 = "1.0.35"
 glam = "0.29.2"
