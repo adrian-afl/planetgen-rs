@@ -7,6 +7,7 @@ use crate::json_input::{
 };
 use crate::math_util::{map, mix, usat};
 use crate::noise::fbm;
+use crate::save_binary_maps::save_terrain_maps;
 use glam::{DVec3, Vec3};
 use rayon::iter::IntoParallelIterator;
 use rayon::iter::ParallelIterator;
@@ -377,6 +378,12 @@ pub fn generate_terrain(input: &InputCelestialBodyDefinition) {
             .save(format!("cubemap_visualizer/public/biome_face_{}.png", face))
             .unwrap();
     });
+
+    save_terrain_maps(
+        terrain_out_dir.to_str().unwrap(),
+        terrain.radius - terrain.min_height,
+        &cube_map_height,
+    );
 
     println!("Saving terrain icosphere");
     generate_icosphere_raw(

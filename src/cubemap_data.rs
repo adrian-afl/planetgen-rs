@@ -7,7 +7,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 pub struct CubeMapDataLayer<Data> {
-    res: u16,
+    pub res: u16,
 
     px: Arc<Mutex<Vec<Data>>>,
     py: Arc<Mutex<Vec<Data>>>,

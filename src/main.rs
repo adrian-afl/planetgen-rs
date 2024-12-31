@@ -10,6 +10,7 @@ mod json_input;
 mod math_util;
 mod noise;
 mod random;
+mod save_binary_maps;
 
 use crate::cli_args::CLIArgs;
 use crate::generate_terrain::generate_terrain;

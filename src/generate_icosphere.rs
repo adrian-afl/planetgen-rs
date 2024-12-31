@@ -101,6 +101,8 @@ fn write_vector_terrain(
         .expect("Write failed");
     file.write_all(&((n.z * 127.0) as u8).to_le_bytes())
         .expect("Write failed");
+    file.write_all(&((0) as u8).to_le_bytes())
+        .expect("Write failed");
 
     file.write_all(&((interpolated_biome_data.color.x * 255.0) as u8).to_le_bytes())
         .expect("Write failed");
@@ -108,11 +110,12 @@ fn write_vector_terrain(
         .expect("Write failed");
     file.write_all(&((interpolated_biome_data.color.z * 255.0) as u8).to_le_bytes())
         .expect("Write failed");
-
     file.write_all(&((interpolated_biome_data.roughness * 255.0) as u8).to_le_bytes())
         .expect("Write failed");
 
     file.write_all(&(global_index as u16).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&((0) as u16).to_le_bytes())
         .expect("Write failed");
 }
 
@@ -170,6 +173,8 @@ fn write_vector_water(file: &mut dyn Write, v: DVec3, global_index: u32) {
         .expect("Write failed");
 
     file.write_all(&(global_index as u16).to_le_bytes())
+        .expect("Write failed");
+    file.write_all(&((0) as u16).to_le_bytes())
         .expect("Write failed");
 }
 
